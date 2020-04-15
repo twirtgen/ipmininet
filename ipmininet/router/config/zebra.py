@@ -18,12 +18,12 @@ class QuaggaDaemon(Daemon):
 
     @property
     def startup_line(self):
-        return '{name} -f {cfg} -i {pid} -z {api} -u root {extra}'\
-                .format(name=self.NAME,
-                        cfg=self.cfg_filename,
-                        pid=self._file('pid'),
-                        api=self.zebra_socket,
-                        extra=self.STARTUP_LINE_EXTRA)
+        return '{name} -f {cfg} -i {pid} -z {api} {extra}' \
+            .format(name=self.PATH,
+                    cfg=self.cfg_filename,
+                    pid=self._file('pid'),
+                    api=self.zebra_socket,
+                    extra=self.STARTUP_LINE_EXTRA)
 
     @property
     def zebra_socket(self):
@@ -43,18 +43,21 @@ class QuaggaDaemon(Daemon):
 
     @property
     def dry_run(self):
-        return '{name} -Cf {cfg} -u root'\
-               .format(name=self.NAME,
-                       cfg=self.cfg_filename)
+        return '{name} -Cf {cfg}' \
+            .format(name=self.PATH,
+                    cfg=self.cfg_filename)
 
 
 class Zebra(QuaggaDaemon):
     NAME = 'zebra'
+    PATH = 'zebra'
     PRIO = 0
     # We want zebra to preserve existing routes in the kernel RT (e.g. those
     # set via ip route)
-    STARTUP_LINE_EXTRA = '-k'
-    KILL_PATTERNS = (NAME,)
+    # STARTUP_LINE_EXTRA = '-k' --> deprecated with FRRouting 7.2
+    # -k was meant to remove old route installed by zebra from a previous run
+    # --> see new parameter -K to set the time before flushing old routes from kernel
+    KILL_PATTERNS = (PATH,)
 
     def __init__(self, *args, **kwargs):
         super(Zebra, self).__init__(*args, **kwargs)
@@ -81,7 +84,7 @@ class Zebra(QuaggaDaemon):
 
     def has_started(self):
         # We override this such that we wait until we have the API socket
-        # and until wa can connect to it
+        # and until we can connect to it
         return os.path.exists(self.zebra_socket) and self.listening()
 
     def listening(self):
@@ -120,7 +123,7 @@ class AccessListEntry(object):
 
     def __init__(self, prefix, action=PERMIT):
         """:param prefix: The ip_interface prefix for that ACL entry
-        :param action: Wether that prefix belongs to the ACL (PERMIT)
+        :param action: Whether that prefix belongs to the ACL (PERMIT)
                         or not (DENY)"""
         self.prefix = prefix
         self.action = action

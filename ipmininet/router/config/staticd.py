@@ -7,6 +7,7 @@ from ipmininet.router.config.zebra import QuaggaDaemon, Zebra
 
 class STATIC(QuaggaDaemon):
     NAME = 'staticd'
+    PATH = 'staticd'
     DEPENDS = (Zebra,)
     KILL_PATTERNS = (NAME,)
 

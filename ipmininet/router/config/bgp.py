@@ -297,8 +297,9 @@ def set_rr(topo, rr, peers=()):
 class BGP(QuaggaDaemon):
     """This class provides the configuration skeletons for BGP routers."""
     NAME = 'bgpd'
+    PATH = 'bgpd'
     DEPENDS = (Zebra,)
-    KILL_PATTERNS = (NAME,)
+    KILL_PATTERNS = (PATH,)
 
     @property
     def STARTUP_LINE_EXTRA(self):

@@ -2,6 +2,8 @@
 that is able to provide configurations for a set of routing daemons.
 It also defines the base class for a routing daemon, as well as a minimalistic
 configuration for a router."""
+import pwd
+
 from future.utils import with_metaclass
 from ipmininet import basestring
 
@@ -96,7 +98,7 @@ class RouterConfig(object):
         else:
             cls.options.update(daemon_opts)
         self._daemons[cls.NAME] = cls
-        require_cmd(cls.NAME, 'Could not find an executable for a daemon!')
+        require_cmd(cls.PATH, 'Could not find an executable for a daemon!')
 
     @property
     def sysctl(self):
@@ -204,6 +206,8 @@ class Daemon(with_metaclass(abc.ABCMeta, object)):
     """This class serves as base for routing daemons"""
     # The name of this routing daemon
     NAME = None
+    # The path to access the daemon executable
+    PATH = None
     # The priority of this daemon, relative to others
     # (e.g. to define startup order)
     PRIO = 10
@@ -218,6 +222,18 @@ class Daemon(with_metaclass(abc.ABCMeta, object)):
         self._node = node
         self._startup_line = None
         self.files = []
+
+        if 'path' in kwargs:
+            self.PATH = kwargs['path']
+        elif 'PATH' not in dir(self):
+            self.PATH = self.NAME
+
+        if 'depends' in kwargs:
+            self.DEPENDS = kwargs['depends']
+
+        if 'kill_patterns' in kwargs:
+            self.KILL_PATTERNS = kwargs['kill_patterns']
+
         self._options = self._defaults(**kwargs)
         super(Daemon, self).__init__()
 
@@ -233,7 +249,7 @@ class Daemon(with_metaclass(abc.ABCMeta, object)):
         cfg = ConfigDict()
         cfg.logfile = self._options['logfile']
         cfg.routerid = self._options.routerid if self._options.routerid \
-                                              else self._node.config.routerid
+            else self._node.config.routerid
         return cfg
 
     def cleanup(self):
@@ -254,10 +270,10 @@ class Daemon(with_metaclass(abc.ABCMeta, object)):
         self.files.append(self.cfg_filename)
         log.debug('Generating %s\n' % self.cfg_filename)
         try:
-            return template_lookup.get_template(self.template_filename)\
-                                  .render(node=cfg,
-                                          ip_statement=ip_statement,
-                                          **kwargs)
+            return template_lookup.get_template(self.template_filename) \
+                .render(node=cfg,
+                        ip_statement=ip_statement,
+                        **kwargs)
         except:
             # Display template errors in a less cryptic way
             log.error('Couldn''t render a config file(',
@@ -272,6 +288,7 @@ class Daemon(with_metaclass(abc.ABCMeta, object)):
         :param cfg: The configuration string"""
         with closing(open(self.cfg_filename, 'w')) as f:
             f.write(cfg)
+            # os.chown(f.name, pwd.getpwnam('frr').pw_gid, pwd.getpwnam('frr').pw_uid)
 
     @abc.abstractproperty
     def startup_line(self):

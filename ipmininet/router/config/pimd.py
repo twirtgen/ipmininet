@@ -8,6 +8,7 @@ class PIMD(QuaggaDaemon):
     to setup multicast routing in the network."""
 
     NAME = 'pimd'
+    PATH = 'pimd'
     DEPENDS = (Zebra,)
     KILL_PATTERNS = (NAME,)
 

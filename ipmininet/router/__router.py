@@ -66,7 +66,7 @@ class ProcessHelper(object):
 
 
 class Router(Node, L3Router):
-    """The actualy router, which manages a set of daemons"""
+    """The actual router, which manages a set of daemons"""
 
     def __init__(self, name,
                  config=BasicRouterConfig,
@@ -84,8 +84,8 @@ class Router(Node, L3Router):
         :param cwd: The base directory for temporary files such as configs
         :param process_manager: The class that will manage all the associated
                                 processes for this router
-        :param use_v4: Wether this router has IPv4
-        :param use_v6: Wether this router has IPv6
+        :param use_v4: Whether this router has IPv4
+        :param use_v6: Whether this router has IPv6
         :param password: The password for the routing daemons vtysh access"""
         super(Router, self).__init__(name, *args, **kwargs)
         self.use_v4 = use_v4
@@ -127,7 +127,7 @@ class Router(Node, L3Router):
             self._old_sysctl[opt] = self._set_sysctl(opt, val)
         # Fire up all daemons
         for d in self.config.daemons:
-            self._processes.popen(shlex.split(d.startup_line))
+            print(self._processes.popen(shlex.split(d.startup_line)))
             # Busy-wait if the daemon needs some time before being started
             while not d.has_started():
                 time.sleep(.001)

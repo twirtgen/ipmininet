@@ -9,6 +9,7 @@ class OSPF6(OSPF):
     It advertizes one network per interface (the primary one), and set
     interfaces not facing another L3Router to passive"""
     NAME = 'ospf6d'
+    PATH = 'ospf6d'
     DEAD_INT = 3
     KILL_PATTERNS = (NAME,)
 

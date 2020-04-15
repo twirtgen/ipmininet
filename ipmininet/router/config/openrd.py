@@ -6,6 +6,7 @@ class OpenrDaemon(Daemon):
     """The base class for the OpenR daemon"""
 
     NAME = 'openr'
+    PATH = 'openr'
 
     @property
     def STARTUP_LINE_EXTRA(self):

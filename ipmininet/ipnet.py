@@ -101,7 +101,7 @@ class IPNet(Mininet):
     def __len__(self):
         return len(self.routers) + super(IPNet, self).__len__()
 
-    def buildFromTopo(self, topo):
+    def buildFromTopo(self, topo=None):
         log.info('\n*** Adding Routers:\n')
         for routerName in topo.routers():
             self.addRouter(routerName, **topo.nodeInfo(routerName))

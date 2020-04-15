@@ -17,6 +17,7 @@ class IPTables(Daemon):
     various table names, commands, pre-existing chains, ..."""
 
     NAME = 'iptables'
+    PATH = 'iptables'
 
     @property
     def startup_line(self):
@@ -50,6 +51,7 @@ class IP6Tables(IPTables):
     """The IPv6 counterpart to iptables ..."""
 
     NAME = 'ip6tables'
+    PATH = 'ip6tables'
     # Everything else is already handled through iptables (and ip6tables.mako)
 
 

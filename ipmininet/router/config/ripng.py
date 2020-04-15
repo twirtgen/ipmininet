@@ -15,6 +15,7 @@ class RIPng(QuaggaDaemon):
     It advertizes one network per interface (the primary one),
     and set interfaces not facing another L3Router to passive"""
     NAME = 'ripngd'
+    PATH = 'ripngd'
     DEPENDS = (Zebra,)
     KILL_PATTERNS = (NAME,)
 

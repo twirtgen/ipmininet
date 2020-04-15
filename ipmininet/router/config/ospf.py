@@ -39,11 +39,12 @@ class OSPFArea(Overlay):
 
 class OSPF(QuaggaDaemon):
     """This class provides a simple configuration for an OSPF daemon.
-    It advertizes one network per interface (the primary one), and set
+    It advertises one network per interface (the primary one), and set
     interfaces not facing another L3Router to passive"""
     NAME = 'ospfd'
+    PATH = 'ospfd'
     DEPENDS = (Zebra,)
-    KILL_PATTERNS = (NAME,)
+    KILL_PATTERNS = (PATH,)
 
     def __init__(self, node, *args, **kwargs):
         super(OSPF, self).__init__(node=node, *args, **kwargs)

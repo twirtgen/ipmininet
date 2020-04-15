@@ -40,6 +40,7 @@ class OpenrDomain(Overlay):
 class Openr(OpenrDaemon):
     """This class provides a simple configuration for an OpenR daemon."""
     NAME = 'openr'
+    PATH = 'openr'
     DEPENDS = (OpenrDaemon,)
     KILL_PATTERNS = (NAME,)
 
