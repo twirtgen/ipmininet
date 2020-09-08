@@ -549,6 +549,47 @@ class IPNet(Mininet):
            return: ploss packet loss percentage"""
         return self.pingPair(use_v4=False)
 
+   
+    def runFailurePlan(self,failure_plan):
+        """this function run a failure plan
+            the plan have to be a list of tuple with the name of routeur between
+            which the link have to be down
+            example of plan:
+            [("R1","R2"),("R8","R9"),("R3","R1")]
+        """
+        print("** Starting failure plan")
+        for link in failure_plan:
+            node1 = self.get(link[0])
+            node2 = self.get(link[1])
+            interfaces = node1.connectionsTo(node2)
+            interfaceNode1 = interfaces[0][0]
+            interfaceNode2 = interfaces[0][1]
+            commande = "ip link set dev " + str(interfaceNode1) + " down"
+            node1.cmd(commande)
+            print("** link between " + link[0] + " and "+ link[1] + " down")
+
+    def restoreLink(self,failure_plan):
+        """function which restore the link
+            does not put a ip address again on
+            the interface
+        """
+        print("** starting restoring link")
+        for link in failure_plan:
+            node1 = self.get(link[0])
+            node2 = self.get(link[1])
+            interfaces = node1.connectionsTo(node2)
+            interfaceNode1 = interfaces[0][0]
+            interfaceNode2 = interfaces[0][1]
+            commande = "ip link set dev " + str(interfaceNode1) + " up"
+            node1.cmd(commande)
+            print("** link between " + link[0] + " and "+ link[1] + " restored")
+
+    """
+    this function run a random failure
+    """
+    def runRandomFailure(self):
+        pass
+
 
 class BroadcastDomain:
     """An IP broadcast domain in the network. This class stores the set of
