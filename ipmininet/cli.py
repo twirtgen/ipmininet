@@ -81,6 +81,25 @@ class IPCLI(CLI):
         """Ping (IPv6-only) between first two hosts, useful for testing."""
         self.mn.ping6Pair()
 
+    def do_linkFailure(self,line):
+        """Down the link between 2 nodes"""
+        nodes = line.split(' ')
+        if(len(nodes) != 2):
+            lg.output("Error: specify 2 nodes")
+        else:
+            self.mn.runFailurePlan([(nodes[0],nodes[1])])
+
+    def do_restoreLink(self,line):
+        """Restore link between 2 nodes
+            WORK ONLY IF THE FIRST NODES SPECIFY
+            IS THE ONE WITH THE DOWNED INTERFACE
+        """
+        nodes = line.split(' ')
+        if(len(nodes) != 2):
+            lg.output("Error: specify 2 nodes")
+        else:
+            self.mn.restoreLink([(nodes[0],nodes[1])])
+
     def default(self, line: str):
         """Called on an input line when the command prefix is not recognized.
         Overridden to run shell commands when a node is the first CLI argument.
