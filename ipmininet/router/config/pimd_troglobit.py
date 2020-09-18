@@ -15,7 +15,10 @@ class Pimd(RouterDaemon):
 
     @property
     def startup_line(self):
-        return '{name} -f --config={cfg}'.format(name=self.NAME,cfg=self.cfg_filename)
+        if hasattr(self,'custom_config'):
+            return '{name} -f --config={cfg}'.format(name=self.NAME,cfg=self.custom_config)
+        else:
+            return '{name} -f --config={cfg}'.format(name=self.NAME,cfg=self.cfg_filename)
 
     @property
     def dry_run(self):
