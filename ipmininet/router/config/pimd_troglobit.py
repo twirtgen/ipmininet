@@ -9,8 +9,11 @@ class Pimd(RouterDaemon):
 
     def __init__(self,node,*args,**kwargs):
         super().__init__(node=node,*args,**kwargs)
+        # add some custom attr
         if "cfg" in kwargs:
             self.custom_config = kwargs["cfg"]
+        if "log_file" in kwargs: 
+            self.logfile = kwargs["log_file"]
 
 
     @property
@@ -22,11 +25,7 @@ class Pimd(RouterDaemon):
 
     @property
     def dry_run(self):
-        #does not check te config file launch the daemon anyway
-        if hasattr(self,'custom_config'):
-            return '{name} --config={cfg}'.format(name=self.NAME,cfg=self.custom_config)
-        else:
-            return '{name} --config={cfg}'.format(name=self.NAME,cfg=self.cfg_filename)
+        return 'echo 2BeOrNot2Be > /dev/null'
 
     def set_defaults(self,defaults):
         super().set_defaults(defaults)
