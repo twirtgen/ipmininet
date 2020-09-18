@@ -17,8 +17,6 @@ from mininet.node import Node, Host
 from mininet.log import lg
 import shlex
 
-import os
-
 
 class ProcessHelper:
     """This class holds processes that are part of a given family, e.g. routing
