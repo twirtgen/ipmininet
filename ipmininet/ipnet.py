@@ -592,6 +592,8 @@ class IPNet(Mininet):
     def RandomFailure(self,n):
         """
         this function down randomly n link
+        It will return a dictionnary with the name of the interface as key
+        and the name of the node as value
         """
         number_of_links = len(self.links)
         if(n > number_of_links):
