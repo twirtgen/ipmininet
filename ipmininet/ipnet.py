@@ -556,39 +556,46 @@ class IPNet(Mininet):
             which the link have to be down
             example of plan:
             [("R1","R2"),("R8","R9"),("R3","R1")]
+            It will return a dictonnary with the name of the node as key
+            and the interface as value
         """
         print("** Starting failure plan")
+        interfaces_down = {}
         for link in failure_plan:
-            node1 = self.get(link[0])
-            node2 = self.get(link[1])
-            interfaces = node1.connectionsTo(node2)
-            interfaceNode1 = interfaces[0][0]
-            interfaceNode2 = interfaces[0][1]
-            commande = "ip link set dev " + str(interfaceNode1) + " down"
-            node1.cmd(commande)
-            print("** link between " + link[0] + " and "+ link[1] + " down")
+            try:
+                node1 = self.get(link[0])
+                node2 = self.get(link[1])
+                interfaces = node1.connectionsTo(node2)
+                interfaceNode1 = interfaces[0][0]
+                interfaceNode2 = interfaces[0][1]
+                commande = "ip link set dev " + str(interfaceNode1) + " down"
+                node1.cmd(commande)
+                interfaces_down[node1] = interfaceNode1
+                print("** link between " + link[0] + " and "+ link[1] + " down")
+            except Exception as e:
+                log.output(e)
+                return interfaces_down
+        return interfaces_down
 
-    def restoreLink(self,failure_plan):
+    def restoreLink(self,interfaces):
         """function which restore the link
-            does not put a ip address again on
-            the interface
+           the argument is a dictonnary  of node:interfaces to
+           go up again
         """
         print("** starting restoring link")
-        for link in failure_plan:
-            node1 = self.get(link[0])
-            node2 = self.get(link[1])
-            interfaces = node1.connectionsTo(node2)
-            interfaceNode1 = interfaces[0][0]
-            interfaceNode2 = interfaces[0][1]
-            commande = "ip link set dev " + str(interfaceNode1) + " up"
-            node1.cmd(commande)
-            print("** link between " + link[0] + " and "+ link[1] + " restored")
+        for node,interface in interfaces.items():
+            commande = "ip link set dev " + str(interface) + " up"
+            node.cmd(commande)
+            print("** interfaces " + str(interface) + " up")
 
-    """
-    this function run a random failure
-    """
-    def runRandomFailure(self):
-        pass
+    def RandomFailure(self,n):
+        """
+        this function down randomly n link
+        """
+        #print(self.routers[0].intfList()[0])
+        #print(self.links)
+        #for i in range(n):
+
 
 
 class BroadcastDomain:
