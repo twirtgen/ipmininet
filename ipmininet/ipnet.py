@@ -557,11 +557,10 @@ class IPNet(Mininet):
             which the link have to be down
             example of plan:
             [("R1","R2"),("R8","R9"),("R3","R1")]
-            It will return a dictonnary with interface as key and 
-            the name of the node as value
+            This will return a list of IPIntf 
         """
         print("** Starting failure plan")
-        interfaces_down = {}
+        interfaces_down = []
         for link in failure_plan:
             try:
                 node1 = self.get(link[0])
@@ -571,47 +570,42 @@ class IPNet(Mininet):
                 interfaceNode2 = interfaces[0][1]
                 commande = "ip link set dev " + str(interfaceNode1) + " down"
                 node1.cmd(commande)
-                interfaces_down[interfaceNode1] = node1
+                interfaces_down.append(interfaceNode1)
                 print("** link between " + link[0] + " and "+ link[1] + " down")
             except Exception as e:
-                log.output(e)
+                log.output("ERROR: node "+ str(e) +"\n")
                 return interfaces_down
         return interfaces_down
 
     def restoreLink(self,interfaces):
         """function which restore the link
-           the argument is a dictonnary  of node:interfaces to
-           go up again
+           the argument is a list of IPInft object 
         """
         print("** starting restoring link")
-        for interface,node in interfaces.items():
+        for interface in interfaces:
             commande = "ip link set dev " + str(interface) + " up"
-            node.cmd(commande)
+            interface.node.cmd(commande)
             print("** interfaces " + str(interface) + " up")
 
     def RandomFailure(self,n):
         """
         this function down randomly n link
-        It will return a dictionnary with the name of the interface as key
-        and the name of the node as value
+        It will return a List of IPintf
         """
         number_of_links = len(self.links)
         if(n > number_of_links):
             log.output("More link down requested than number of link in the network\n")
         else:
-            routers = self.routers
-            interfaces_down = {}
-            i = 0
-            while(i < n):
-                router = random.choice(routers)
-                interface = random.choice(router.intfList()[1:]) #remove the loopback interface
-                if(interface not in interfaces_down): #use to not down 2 times the same interface
-                    commande = "ip link set dev "+ str(interface) + " down"
-                    router.cmd(commande)
-                    log.output("** Interface "+ str(interface) + " of node "+ str(router) + " down\n")
-                    interfaces_down[interface] = router
-                    i += 1
-            return interfaces_down
+            downed_interfaces = []
+            all_links = self.links
+            down_interfaces = random.sample(all_links,k=n)
+            for interface in down_interfaces:
+                router = interface.intf1.node
+                downed_interfaces.append(interface.intf1)
+                commande = "ip link set dev "+ str(interface.intf1) + " down"
+                router.cmd(commande)
+                log.output("** Interface "+ str(interface.intf1) + " of node "+ str(router) + " down\n")
+            return downed_interfaces 
 
 
 
