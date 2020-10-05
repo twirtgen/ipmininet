@@ -551,13 +551,14 @@ class IPNet(Mininet):
         return self.pingPair(use_v4=False)
 
    
-    def runFailurePlan(self,failure_plan):
+    def runFailurePlan(self, failure_plan):
         """this function run a failure plan
             the plan have to be a list of tuple with the name of routeur between
             which the link have to be down
             example of plan:
             [("R1","R2"),("R8","R9"),("R3","R1")]
-            This will return a list of IPIntf 
+            This will return a list of IPIntf and an empty list if there was an unkniw
+            node
         """
         print("** Starting failure plan")
         interfaces_down = []
@@ -568,16 +569,17 @@ class IPNet(Mininet):
                 interfaces = node1.connectionsTo(node2)
                 interfaceNode1 = interfaces[0][0]
                 interfaceNode2 = interfaces[0][1]
-                commande = "ip link set dev " + str(interfaceNode1) + " down"
-                node1.cmd(commande)
                 interfaces_down.append(interfaceNode1)
-                print("** link between " + link[0] + " and "+ link[1] + " down")
-            except Exception as e:
+            except KeyError as e:
                 log.output("ERROR: node "+ str(e) +"\n")
-                return interfaces_down
+                interfaces_down = []
+        for interface in interfaces_down:
+            commande = "ip link set dev " + str(interface) + " down"
+            interface.node.cmd(commande)
+            print("** Interface "+ str(interface) +" down")
         return interfaces_down
 
-    def restoreLink(self,interfaces):
+    def restoreLink(self, interfaces):
         """function which restore the link
            the argument is a list of IPInft object 
         """
@@ -587,7 +589,7 @@ class IPNet(Mininet):
             interface.node.cmd(commande)
             print("** interfaces " + str(interface) + " up")
 
-    def RandomFailure(self,n):
+    def RandomFailure(self, n):
         """
         this function down randomly n link
         It will return a List of IPintf
