@@ -553,9 +553,9 @@ class IPNet(Mininet):
    
     def runFailurePlan(self, failure_plan: List[Tuple[str,str]]) -> List[IPIntf]:
         """this function run a failure plan
-            param: A list of tuple of string giving the name of the 2 nodes between
+            :param: A list of tuple of string giving the name of the 2 nodes between
                     which the link have to be taken down
-            return: A list of IPIntf which represent the interface that goes down or 
+            :return: A list of IPIntf which represent the interface that goes down or 
                     an empty list if there was an unknown node in the failure_plan
         """
         print("** Starting failure plan")
@@ -579,7 +579,7 @@ class IPNet(Mininet):
 
     def restoreLink(self, interfaces: List[IPIntf]):
         """function which restore the link
-            param interfaces: a List of IPIntf
+            :param interfaces: a List of IPIntf
         """
         print("** starting restoring link")
         for interface in interfaces:
@@ -587,25 +587,40 @@ class IPNet(Mininet):
             interface.node.cmd(commande)
             print("** interfaces " + str(interface) + " up")
 
-    def RandomFailure(self, n) -> List[IPIntf]:
+    def RandomFailure(self, n, weak_links=None) -> List[IPIntf]:
         """ this function down randomly n link
-            param n: the number of link to be downed
-            return: a list of IPIntf which have been downed
+            :param n: the number of link to be downed
+            :param weak_links: an optional parameter which specify a list of IPIntf in
+                                which the n links will be downed
+            :return: a list of IPIntf which have been downed
         """
-        number_of_links = len(self.links)
-        if(n > number_of_links):
-            log.output("More link down requested than number of link in the network\n")
-        else:
-            downed_interfaces = []
+        if weak_links is None:
             all_links = self.links
-            down_interfaces = random.sample(all_links,k=n)
-            for interface in down_interfaces:
-                router = interface.intf1.node
-                downed_interfaces.append(interface.intf1)
-                commande = "ip link set dev "+ str(interface.intf1) + " down"
-                router.cmd(commande)
-                log.output("** Interface "+ str(interface.intf1) + " of node "+ str(router) + " down\n")
-            return downed_interfaces 
+            number_of_links = len(all_links)
+            if(n > number_of_links):
+                log.output("More link down requested than number of link in the network\n")
+            else:
+                downed_interfaces = []
+                down_interfaces = random.sample(all_links,k=n)
+                for interface in down_interfaces:
+                    router = interface.intf1.node
+                    downed_interfaces.append(interface.intf1)
+                    commande = "ip link set dev "+ str(interface.intf1) + " down"
+                    router.cmd(commande)
+                    log.output("** Interface "+ str(interface.intf1)  + " down\n")
+                return downed_interfaces 
+        else:
+            all_links = weak_links
+            if(n > len(all_links)):
+                log.output("More link down requested than number of link in weak_links\n")
+            else:
+                down_interfaces = random.sample(all_links,k=n)
+                for intf in down_interfaces:
+                    commande = "ip link set dev "+ str(intf) + " down"
+                    intf.node.cmd(commande)
+                    log.output("** Interface "+ str(intf) + " down \n")
+                return down_interfaces
+                
 
 
 
