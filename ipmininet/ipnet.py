@@ -551,14 +551,12 @@ class IPNet(Mininet):
         return self.pingPair(use_v4=False)
 
    
-    def runFailurePlan(self, failure_plan):
+    def runFailurePlan(self, failure_plan: List[Tuple[str,str]]) -> List[IPIntf]:
         """this function run a failure plan
-            the plan have to be a list of tuple with the name of routeur between
-            which the link have to be down
-            example of plan:
-            [("R1","R2"),("R8","R9"),("R3","R1")]
-            This will return a list of IPIntf and an empty list if there was an unkniw
-            node
+            param: A list of tuple of string giving the name of the 2 nodes between
+                    which the link have to be taken down
+            return: A list of IPIntf which represent the interface that goes down or 
+                    an empty list if there was an unknown node in the failure_plan
         """
         print("** Starting failure plan")
         interfaces_down = []
@@ -579,9 +577,9 @@ class IPNet(Mininet):
             print("** Interface "+ str(interface) +" down")
         return interfaces_down
 
-    def restoreLink(self, interfaces):
+    def restoreLink(self, interfaces: List[IPIntf]):
         """function which restore the link
-           the argument is a list of IPInft object 
+            param interfaces: a List of IPIntf
         """
         print("** starting restoring link")
         for interface in interfaces:
@@ -589,10 +587,10 @@ class IPNet(Mininet):
             interface.node.cmd(commande)
             print("** interfaces " + str(interface) + " up")
 
-    def RandomFailure(self, n):
-        """
-        this function down randomly n link
-        It will return a List of IPintf
+    def RandomFailure(self, n) -> List[IPIntf]:
+        """ this function down randomly n link
+            param n: the number of link to be downed
+            return: a list of IPIntf which have been downed
         """
         number_of_links = len(self.links)
         if(n > number_of_links):

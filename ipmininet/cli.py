@@ -81,7 +81,7 @@ class IPCLI(CLI):
         """Ping (IPv6-only) between first two hosts, useful for testing."""
         self.mn.ping6Pair()
 
-    def do_link(self,line):
+    def do_link(self, line):
         """ down/up the link between 2 specified routers, can specify multiple
             multiple router at once by doing link u v, w x [down/up]
         """
