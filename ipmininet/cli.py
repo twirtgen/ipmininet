@@ -83,7 +83,7 @@ class IPCLI(CLI):
 
     def do_link(self, line):
         """ down/up the link between 2 specified routers, can specify multiple
-            multiple router at once by doing link u v, w x [down/up]
+            multiple link 
         """
         all_args = line.split(',')
         last_args = all_args[-1].split()
