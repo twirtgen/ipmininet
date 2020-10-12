@@ -587,7 +587,7 @@ class IPNet(Mininet):
             interface.node.cmd(commande)
             log.output("** interfaces " + str(interface) + " up\n")
 
-    def RandomFailure(self, n, weak_links=None) -> List[IPIntf]:
+    def RandomFailure(self, n: int, weak_links:List[IPIntf]=None) -> List[IPIntf]:
         """ this function down randomly n link
             :param n: the number of link to be downed
             :param weak_links: an optional parameter which specify a list of IPIntf in
