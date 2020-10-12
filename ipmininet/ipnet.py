@@ -587,42 +587,27 @@ class IPNet(Mininet):
             interface.node.cmd(commande)
             log.output("** interfaces " + str(interface) + " up\n")
 
-    def RandomFailure(self, n: int, weak_links:List[IPIntf]=None) -> List[IPIntf]:
+    def RandomFailure(self, n: int, weak_links:Optional[List[IPLink]]=None) -> List[IPIntf]:
         """ this function down randomly n link
             :param n: the number of link to be downed
             :param weak_links: an optional parameter which specify a list of IPIntf in
                                 which the n links will be downed
             :return: a list of IPIntf which have been downed
         """
-        if weak_links is None:
-            all_links = self.links
-            number_of_links = len(all_links)
-            if(n > number_of_links):
-                log.output("More link down requested than number of link in the network\n")
-            else:
-                downed_interfaces = []
-                down_interfaces = random.sample(all_links,k=n)
-                for interface in down_interfaces:
-                    router = interface.intf1.node
-                    downed_interfaces.append(interface.intf1)
-                    commande = "ip link set dev "+ str(interface.intf1) + " down"
-                    router.cmd(commande)
-                    log.output("** Interface "+ str(interface.intf1)  + " down\n")
-                return downed_interfaces 
+        all_links = weak_links if weak_links is not None else self.links
+        number_of_links = len(all_links)
+        if(n > number_of_links):
+            log.output("More link down requested than number of link in the network\n")
         else:
-            all_links = weak_links
-            if(n > len(all_links)):
-                log.output("More link down requested than number of link in weak_links\n")
-            else:
-                down_interfaces = random.sample(all_links,k=n)
-                for intf in down_interfaces:
-                    commande = "ip link set dev "+ str(intf) + " down"
-                    intf.node.cmd(commande)
-                    log.output("** Interface "+ str(intf) + " down \n")
-                return down_interfaces
-                
-
-
+            downed_interfaces = []
+            down_interfaces = random.sample(all_links,k=n)
+            for interface in down_interfaces:
+                router = interface.intf1.node
+                downed_interfaces.append(interface.intf1)
+                commande = "ip link set dev "+ str(interface.intf1) + " down"
+                router.cmd(commande)
+                log.output("** Interface "+ str(interface.intf1)  + " down\n")
+            return downed_interfaces 
 
 class BroadcastDomain:
     """An IP broadcast domain in the network. This class stores the set of
