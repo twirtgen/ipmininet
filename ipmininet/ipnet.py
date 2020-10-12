@@ -558,7 +558,7 @@ class IPNet(Mininet):
             :return: A list of IPIntf which represent the interface that goes down or 
                     an empty list if there was an unknown node in the failure_plan
         """
-        print("** Starting failure plan")
+        log.output("** Starting failure plan\n")
         interfaces_down = []
         for link in failure_plan:
             try:
@@ -574,18 +574,18 @@ class IPNet(Mininet):
         for interface in interfaces_down:
             commande = "ip link set dev " + str(interface) + " down"
             interface.node.cmd(commande)
-            print("** Interface "+ str(interface) +" down")
+            log.output("** Interface "+ str(interface) +" down\n")
         return interfaces_down
 
     def restoreLink(self, interfaces: List[IPIntf]):
         """function which restore the link
             :param interfaces: a List of IPIntf
         """
-        print("** starting restoring link")
+        log.output("** starting restoring link\n")
         for interface in interfaces:
             commande = "ip link set dev " + str(interface) + " up"
             interface.node.cmd(commande)
-            print("** interfaces " + str(interface) + " up")
+            log.output("** interfaces " + str(interface) + " up\n")
 
     def RandomFailure(self, n, weak_links=None) -> List[IPIntf]:
         """ this function down randomly n link
