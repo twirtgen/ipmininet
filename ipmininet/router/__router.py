@@ -214,7 +214,7 @@ class Router(IPNode, L3Router):
                  lo_addresses: Sequence[Union[str, IPv4Interface,
                                               IPv6Interface]] = (),
                  *args, **kwargs):
-        """:param password: The password for the routing daemons vtysh access 
+        """:param password: The password for the routing daemons vtysh access
            :param lo_addresses: The list of addresses to set on the loopback
                                 interface"""
         super().__init__(name, config=config, *args, **kwargs)
