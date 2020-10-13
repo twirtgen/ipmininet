@@ -569,7 +569,7 @@ class IPNet(Mininet):
                 interfaceNode2 = interfaces[0][1]
                 interfaces_down.append(interfaceNode1)
             except KeyError as e:
-                log.output("ERROR: node "+ str(e) +"\n")
+                log.error("ERROR: node "+ str(e) +"\n")
                 interfaces_down = []
         for interface in interfaces_down:
             commande = "ip link set dev " + str(interface) + " down"
@@ -597,7 +597,7 @@ class IPNet(Mininet):
         all_links = weak_links if weak_links is not None else self.links
         number_of_links = len(all_links)
         if(n > number_of_links):
-            log.output("More link down requested than number of link in the network\n")
+            log.warning("More link down requested than number of link in the network\n")
         else:
             downed_interfaces = []
             down_interfaces = random.sample(all_links,k=n)
