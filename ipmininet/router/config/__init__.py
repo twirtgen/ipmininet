@@ -18,6 +18,8 @@ from .pimd import PIMD
 from .ripng import RIPng
 from .openrd import OpenrDaemon
 from .openr import Openr, OpenrDomain
+from .exabgp import ExaBGPDaemon, ExaList, BGPRoute, BGPAttribute, \
+    BGPAttributeFlags, Representable, HexRepresentable, ExaList
 
 __all__ = ['BasicRouterConfig', 'NodeConfig', 'Zebra', 'OSPF', 'OSPF6',
            'OSPFArea', 'BGP', 'AS', 'SHARE', 'CLIENT_PROVIDER',
@@ -25,6 +27,8 @@ __all__ = ['BasicRouterConfig', 'NodeConfig', 'Zebra', 'OSPF', 'OSPF6',
            'ebgp_session', 'CommunityList', 'set_rr', 'AccessList', 'IPTables',
            'IP6Tables', 'SSHd', 'RADVD', 'AdvPrefix', 'AdvConnectedPrefix',
            'AdvRDNSS', 'PIMD', 'RIPng', 'STATIC', 'StaticRoute',
+           'ExaBGPDaemon', 'ExaList', 'BGPRoute', 'BGPAttributeFlags',
+           'BGPAttribute', 'Representable', 'HexRepresentable',
            'OpenrDaemon', 'Openr', 'OpenrRouterConfig', 'OpenrDomain',
            'AF_INET', 'AF_INET6', 'BorderRouterConfig', 'Rule', 'Chain',
            'ChainRule', 'NOT', 'PortClause', 'InterfaceClause',

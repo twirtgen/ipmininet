@@ -1,5 +1,6 @@
 """Base classes to configure a BGP daemon"""
 import heapq
+from abc import ABC
 from typing import Sequence, TYPE_CHECKING, Optional, Union, Tuple, List, Set
 
 import itertools
@@ -9,6 +10,7 @@ from ipaddress import ip_network, ip_address, IPv4Network, IPv6Network
 from ipmininet.link import IPIntf
 from ipmininet.overlay import Overlay
 from ipmininet.utils import realIntfList
+from .base import RouterDaemon
 from .zebra import QuaggaDaemon, Zebra, RouteMap, AccessList, \
     RouteMapMatchCond, CommunityList, RouteMapSetAction, PERMIT, DENY
 
@@ -344,7 +346,30 @@ def set_rr(topo: 'IPTopo', rr: str, peers: Sequence[str] = ()):
     router_is_rr.append(True)
 
 
-class BGP(QuaggaDaemon):
+class AbstractBGP(ABC, RouterDaemon):
+
+    @staticmethod
+    def _address_families(af: List['AddressFamily'], nei: List['Peer']) \
+            -> List['AddressFamily']:
+        """Complete the address families: add extra networks, or activate
+        neighbors. The default is to activate all given neighbors"""
+        for a in af:
+            a.neighbors.extend(nei)
+        return af
+
+    def _build_neighbors(self) -> List['Peer']:
+        """Compute the set of BGP peers for this BGP router
+        :return: set of neighbors"""
+        neighbors = []
+        for x in self._node.get('bgp_peers', []):
+            for v6 in [True, False]:
+                peer = Peer(self._node, x, v6=v6)
+                if peer.peer:
+                    neighbors.append(peer)
+        return neighbors
+
+
+class BGP(QuaggaDaemon, AbstractBGP):
     """This class provides the configuration skeletons for BGP routers."""
     NAME = 'bgpd'
     DEPENDS = (Zebra,)
@@ -438,26 +463,6 @@ class BGP(QuaggaDaemon):
         defaults.address_families = [AF_INET(), AF_INET6()]
         super().set_defaults(defaults)
 
-    def _build_neighbors(self) -> List['Peer']:
-        """Compute the set of BGP peers for this BGP router
-        :return: set of neighbors"""
-        neighbors = []
-        for x in self._node.get('bgp_peers', []):
-            for v6 in [True, False]:
-                peer = Peer(self._node, x, v6=v6)
-                if peer.peer:
-                    neighbors.append(peer)
-        return neighbors
-
-    @staticmethod
-    def _address_families(af: List['AddressFamily'], nei: List['Peer']) \
-            -> List['AddressFamily']:
-        """Complete the address families: add extra networks, or activate
-        neighbors. The default is to activate all given neighbors"""
-        for a in af:
-            a.neighbors.extend(nei)
-        return af
-
     @classmethod
     def get_config(cls, topo: 'IPTopo', node: 'RouterDescription', **kwargs):
         return BGPConfig(topo=topo, router=node)
@@ -489,7 +494,7 @@ class Peer:
     def __init__(self, base: 'Router', node: str, v6=False):
         """:param base: The base router that has this peer
         :param node: The actual peer"""
-        self.peer, other = self._find_peer_address(base, node, v6=v6)
+        self.peer, other, self.local_addr = self._find_peer_address(base, node, v6=v6)
         if not self.peer or not other:
             return
         self.node = node
@@ -508,7 +513,7 @@ class Peer:
 
     @staticmethod
     def _find_peer_address(base: 'Router', peer: str, v6=False) \
-            -> Tuple[Optional[str], Optional['Router']]:
+            -> Tuple[Optional[str], Optional['Router'], Optional[str]]:
         """Return the IP address that base should try to contact to establish
         a peering"""
         visited = set()  # type: Set[IPIntf]
@@ -526,13 +531,13 @@ class Peer:
             for n in i.broadcast_domain.routers:
                 if n.node.name == peer:
                     if not v6:
-                        return n.ip, n.node
+                        return n.ip, n.node, i.ip
                     if n.ip6 and not ip_address(n.ip6).is_link_local:
-                        return n.ip6, n.node
-                    return None, None
+                        return n.ip6, n.node, i.ip6
+                    return None, None, None
                 if n.node.asn == base.asn or not n.node.asn:
                     for i in realIntfList(n.node):
                         to_visit[i.name] = i
                         heapq.heappush(prio_queue, (path_cost + i.igp_metric,
                                                     i.name))
-        return None, None
+        return None, None, None
