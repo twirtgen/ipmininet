@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 from ipaddress import IPv4Interface, IPv6Interface
-from typing import Type, Optional, Tuple, Union, Dict, List, Sequence
+from typing import Type, Optional, Tuple, Union, Dict, List, Sequence, Set
 
 import mininet.clean
 from mininet.log import lg
@@ -14,7 +14,6 @@ from mininet.node import Node, Host
 from ipmininet import DEBUG_FLAG
 from ipmininet.link import IPIntf
 from ipmininet.utils import L3Router, realIntfList, otherIntf
-from .config import BasicRouterConfig, NodeConfig, RouterConfig
 from .config import BasicRouterConfig, NodeConfig, RouterConfig, \
     OpenrRouterConfig
 
@@ -252,7 +251,7 @@ class OpenrRouter(Router):
     def __init__(self, name, *args,
                  config: Type[OpenrRouterConfig],
                  lo_addresses: Optional[Sequence[
-                     Union[str, IPv4Interface, IPv6Interface]]] = None,
+                 Union[str, IPv4Interface, IPv6Interface]]] = None,
                  privateDirs=['/tmp'],
                  **kwargs):
         if not lo_addresses:
