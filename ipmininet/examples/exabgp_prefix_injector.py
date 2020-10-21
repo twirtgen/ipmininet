@@ -24,7 +24,7 @@ def rnd_list(max_len: int, strict=False, bound_lo: int = 1, bound_hi: int = __MA
     of at most max_len elements
 
     :param max_len: the maximum number of random integer to generate
-    :param strict: if set to True, the generated list will contains exactly 
+    :param strict: if set to True, the generated list will contains exactly
                    max_len random integers len(generated_list) = max_sub_rnd_list.
                    If set to False, 1 <= len(generated_list) <= max_sub_rnd_list
     :param bound_lo: randomly generated integers >= bound_lo

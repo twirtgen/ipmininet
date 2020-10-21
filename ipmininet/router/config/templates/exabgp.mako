@@ -1,4 +1,5 @@
 %for n in node.exabgp.neighbors:
+
 neighbor ${n.peer} {
     description ${n.description};
     router-id ${node.exabgp.routerid};

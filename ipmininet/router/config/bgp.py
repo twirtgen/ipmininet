@@ -1,5 +1,8 @@
 """Base classes to configure a BGP daemon"""
 import heapq
+from abc import ABC
+from typing import Sequence, TYPE_CHECKING, Optional, Union, Tuple, List, Set
+
 import itertools
 from abc import ABC
 from ipaddress import ip_network, ip_address, IPv4Network, IPv6Network

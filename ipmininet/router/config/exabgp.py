@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence, Union, List, Any
+from typing import Optional, Sequence, Union, List
 
 from .bgp import AbstractBGP, AF_INET, AF_INET6, BGP_DEFAULT_PORT, Peer
 from .utils import ConfigDict
