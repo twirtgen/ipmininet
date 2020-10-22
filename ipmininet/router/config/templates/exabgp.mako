@@ -33,5 +33,4 @@ neighbor ${n.peer} {
         %endfor
     }
 }
-
 %endfor
