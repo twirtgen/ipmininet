@@ -105,6 +105,20 @@ def host_connected(net: IPNet, v6=False, timeout=0.5, translate_address=True) \
     return True
 
 
+def assert_node_not_connected(src: IPNode, dst: IPNode, v6=False, timeout=0.5):
+    require_cmd("nmap", help_str="nmap is required to run tests")
+
+    dst.defaultIntf().updateIP()
+    dst.defaultIntf().updateIP6()
+    dst_ip = dst.defaultIntf().ip6 if v6 else dst.defaultIntf().ip
+    cmd = "nmap%s -sn -n --max-retries 5 --max-rtt-timeout %dms %s" \
+          % (" -6" if v6 else "", int(timeout * 1000), dst_ip)
+    out = src.cmd(cmd.split(" "))
+
+    assert "0 hosts up" in out, "Node {} is connected to node {} over {}".format(src.name, dst.name,
+                                                                                 "IPv4" if not v6 else "IPv6")
+
+
 def assert_connectivity(net: IPNet, v6=False, attempts=300,
                         translate_address=True):
     t = 0
