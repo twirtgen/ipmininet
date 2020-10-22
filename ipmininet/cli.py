@@ -91,8 +91,7 @@ class IPCLI(CLI):
         state = last_args[-1]
         for elem in all_args[:-1]:
             super().do_link(elem + " " + state)
-        super().do_link(all_args[-1]) #do the last one
-
+        super().do_link(all_args[-1])  # Do the last one
 
     def default(self, line: str):
         """Called on an input line when the command prefix is not recognized.

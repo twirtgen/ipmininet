@@ -550,26 +550,20 @@ class IPNet(Mininet):
            return: ploss packet loss percentage"""
         return self.pingPair(use_v4=False)
 
-   
-    def runFailurePlan(self, failure_plan: List[Tuple[str,str]]) -> List[IPIntf]:
-        """this function run a failure plan
-            :param: A list of tuple of string giving the name of the 2 nodes between
-                    which the link have to be taken down
-            :return: A list of IPIntf which represent the interface that goes down or 
-                    an empty list if there was an unknown node in the failure_plan
+    def runFailurePlan(self, failure_plan: List[Tuple[str, str]]) -> List[IPIntf]:
+        """Run a failure plan
+            :param: A list of pairs of node names: links connecting these two links will be downed
+            :return: A list of interfaces that were downed
         """
         log.output("** Starting failure plan\n")
         interfaces_down = []
-        for link in failure_plan:
+        for node1, node2 in failure_plan:
             try:
-                node1 = self.get(link[0])
-                node2 = self.get(link[1])
-                interfaces = node1.connectionsTo(node2)
-                interfaceNode1 = interfaces[0][0]
-                interfaceNode2 = interfaces[0][1]
-                interfaces_down.append(interfaceNode1)
+                links = self[node1].connectionsTo(self[node2])
+                for link in links:
+                    interfaces_down.extend(link)
             except KeyError as e:
-                log.error("ERROR: node "+ str(e) +"\n")
+                log.error("Node " + str(e) + " does not exist\n")
                 interfaces_down = []
         for interface in interfaces_down:
             commande = "ip link set dev " + str(interface) + " down"
@@ -577,9 +571,9 @@ class IPNet(Mininet):
             log.output("** Interface "+ str(interface) +" down\n")
         return interfaces_down
 
-    def restoreLink(self, interfaces: List[IPIntf]):
-        """function which restore the link
-            :param interfaces: a List of IPIntf
+    def restoreIntfs(self, interfaces: List[IPIntf]):
+        """Restore interfaces
+            :param interfaces: the list of interfaces to restore
         """
         log.output("** starting restoring link\n")
         for interface in interfaces:
@@ -587,17 +581,17 @@ class IPNet(Mininet):
             interface.node.cmd(commande)
             log.output("** interfaces " + str(interface) + " up\n")
 
-    def RandomFailure(self, n: int, weak_links:Optional[List[IPLink]]=None) -> List[IPIntf]:
-        """ this function down randomly n link
+    def randomFailure(self, n: int, weak_links: Optional[List[IPLink]] = None) -> List[IPIntf]:
+        """Randomly down 'n' link
             :param n: the number of link to be downed
-            :param weak_links: an optional parameter which specify a list of IPIntf in
-                                which the n links will be downed
-            :return: a list of IPIntf which have been downed
+            :param weak_links: the list of links that can be downed; if set to None, every network link can be downed
+            :return: the list of interfaces which were downed
         """
         all_links = weak_links if weak_links is not None else self.links
         number_of_links = len(all_links)
-        if(n > number_of_links):
-            log.warning("More link down requested than number of link in the network\n")
+        if n > number_of_links:
+            log.error("More link down requested than number of link that can be downed\n")
+            return []
         else:
             downed_interfaces = []
             down_interfaces = random.sample(all_links,k=n)
@@ -608,6 +602,7 @@ class IPNet(Mininet):
                 router.cmd(commande)
                 log.output("** Interface "+ str(interface.intf1)  + " down\n")
             return downed_interfaces 
+
 
 class BroadcastDomain:
     """An IP broadcast domain in the network. This class stores the set of
