@@ -29,6 +29,7 @@ class IPIntf(_m.TCIntf):
         super().__init__(*args, **kwargs)
         self.isUp(setUp=True)
         self._refresh_addresses()
+        self.restore_cmds = []
 
     @property
     def igp_area(self) -> str:

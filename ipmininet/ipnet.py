@@ -189,26 +189,7 @@ class IPNet(Mininet):
         for h in self.hosts:
             if 'defaultRoute' in h.params:
                 continue  # Skipping hosts with explicit default route
-            default = False
-            # The first router we find will become the default gateway
-            for itf in realIntfList(h):
-                for r in itf.broadcast_domain.routers:
-                    log.info('%s via %s, ' % (h.name, r.name))
-                    if self.use_v4 and h.use_v4 and len(r.addresses[4]) > 0:
-                        h.setDefaultRoute('via %s' % r.ip)
-                        default = True
-                    if (self.use_v6 and h.use_v6 and len(r.addresses[6]) > 0 and
-                            len(r.ra_prefixes)) == 0:
-                        # We define a default route only if router xi
-                        # advertisement are not activated. If we call the same
-                        # function, the route created above might be deleted
-                        h.cmd('ip route add default dev %s via %s' % (
-                            h.defaultIntf(), r.ip6))
-                        default = True
-                    break
-                if default:
-                    break
-            if not default:
+            if not h.createDefaultRoutes():
                 log.info('skipping %s , ' % h.name)
         log.info('\n')
 
