@@ -26,8 +26,8 @@ router bgp ${node.bgpd.asn}
 % for af in node.bgpd.address_families:
     address-family ${af.name}
     % for rm in node.bgpd.route_maps:
-        % if rm.neighbor.family == af.name and rm.order == 10:
-    neighbor ${rm.neighbor.peer} route-map ${rm.name}-${af.name} ${rm.direction}
+        % if rm.neighbor.family == af.name and rm.order == 10 and rm.family == af.name:
+    neighbor ${rm.neighbor.peer} route-map ${rm.name} ${rm.direction}
         % endif
     % endfor
     % for net in af.networks:
@@ -50,6 +50,7 @@ router bgp ${node.bgpd.asn}
     % if node.bgpd.rr:
     bgp cluster-id ${node.bgpd.routerid}
     % endif
+    exit-address-family
 % endfor
 
 % for al in node.bgpd.access_lists:
@@ -62,14 +63,27 @@ ip access-list ${al.name} ${e.action} ${e.prefix}
 ip community-list standard ${cl.name} ${cl.action} ${cl.community}
 % endfor
 
+% for pl in node.bgpd.prefix_lists:
+    %for e in pl.entries:
+${'%s' % 'ip' if e.family == 'ipv4' else 'ipv6'} prefix-list ${pl.name} ${e.action} ${e.prefix} ${ 'le %s' % e.le if e.le else ''} ${ 'ge %s' % e.ge if e.ge else ''}
+    %endfor
+% endfor
+
+
 % for rm in node.bgpd.route_maps:
-route-map ${rm.name}-${rm.neighbor.family} ${rm.match_policy} ${rm.order}
+route-map ${rm.name} ${rm.match_policy} ${rm.order}
         %for match in rm.match_cond:
-            %if match.cond_type == "access-list":
+            %if match.cond_type == "access-list" and match.family == rm.family:
     match ${ip_statement(rm.neighbor.peer)} address ${match.condition}
-            %elif match.cond_type == "prefix-list" or match.cond_type =='next-hop':
-    match {ip_statement(rm.neighbor.peer)} address ${match.cond_type} ${match.condition}
-            %else:
+            %elif match.cond_type == "prefix-list" and match.family == rm.family:
+                %if match.family and match.family == 'ipv4':
+    match ip address ${match.cond_type} ${match.condition}
+                %else:
+    match ipv6 address ${match.cond_type} ${match.condition}
+                %endif
+            %elif match.cond_type =='next-hop':
+    match ${ip_statement(rm.neighbor.peer)} address ${match.cond_type} ${match.condition}
+            %elif match.family == rm.family:
     match ${match.cond_type} ${match.condition}
             %endif
         %endfor
@@ -86,6 +100,7 @@ route-map ${rm.name}-${rm.neighbor.family} ${rm.match_policy} ${rm.order}
         %if rm.exit_policy:
     on-match ${rm.exit_policy}
         %endif
+!
 % endfor
 <%block name="router"/>
 !

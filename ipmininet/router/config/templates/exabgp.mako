@@ -1,5 +1,4 @@
 %for n in node.exabgp.neighbors:
-
 neighbor ${n.peer} {
     description ${n.description};
     router-id ${node.exabgp.routerid};
@@ -9,18 +8,23 @@ neighbor ${n.peer} {
     listen ${node.exabgp.port};
     connect ${n.port};
 
+    group-updates false;
+
     family {
     %for af in node.exabgp.address_families:
         ${af.name} unicast;
     %endfor
     }
-    %if len(node.exabgp.prefixes) > 0:
 
-    static {
-        %for pfx in node.exabgp.prefixes:
-        ${str(pfx)};
+    announce {
+        %for af in node.exabgp.address_families:
+        ${af.name} {
+            %for route in af.routes:
+            ${route};
+            %endfor
+        }
         %endfor
     }
-    %endif
 }
+
 %endfor

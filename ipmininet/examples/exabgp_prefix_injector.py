@@ -46,13 +46,13 @@ def rnd_list(max_sub_rnd_list, strict=False):
     return list(rnd_set)
 
 
-def build_bgp_route(ip_networks):
+def build_bgp_route(ip_networks, my_as):
 
     my_routes = list()
 
     for ip_network in ip_networks:
         next_hop = BGPAttribute("next-hop", "self")
-        as_path = BGPAttribute("as-path", ExaList(rnd_list(random.randint(1, 25))))
+        as_path = BGPAttribute("as-path", ExaList([my_as] + rnd_list(random.randint(1, 25))))
         communities = BGPAttribute("community",
                                    ExaList(["%d:%d" % (j, k) for j, k in zip(rnd_list(24, True), rnd_list(24, True))]))
         med = BGPAttribute("med", random.randint(1, __MAX_UINT32_))
@@ -77,15 +77,20 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
     """
 
     @staticmethod
-    def gen_simple_prefixes():
+    def gen_simple_prefixes_v4(my_as):
         pfxs = (ipaddress.ip_network("8.8.8.0/24"),
                 ipaddress.ip_network("19.145.206.163/32"),
-                ipaddress.ip_network("140.182.0.0/16"),
-                ipaddress.ip_network("c0ff:ee:beef::/56"),
+                ipaddress.ip_network("140.182.0.0/16"),)
+
+        return build_bgp_route(pfxs, my_as)
+
+    @staticmethod
+    def gen_simple_prefixes_v6(my_as):
+        pfxs = (ipaddress.ip_network("c0ff:ee:beef::/56"),
                 ipaddress.ip_network("1:ea7:dead:beef::/64"),
                 ipaddress.ip_network("d0d0:15:dead::/48"))
 
-        return build_bgp_route(pfxs)
+        return build_bgp_route(pfxs, my_as)
 
     def build(self, *args, **kwargs):
         """
@@ -93,9 +98,13 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
          | as1 +-----+ as2 |
          +--+--+  =  +--+--+
         """
+
+        af4 = _bgp.AF_INET(routes=self.gen_simple_prefixes_v4(1))
+        af6 = _bgp.AF_INET6(routes=self.gen_simple_prefixes_v6(1))
+
         # Add all routers
-        as1r1 = self.addRouter("as1_rr1", config=RouterConfig, use_v4=True, use_v6=True)
-        as1r1.addDaemon(ExaBGPDaemon, prefixes=self.gen_simple_prefixes())
+        as1r1 = self.addRouter("as1", config=RouterConfig, use_v4=True, use_v6=True)
+        as1r1.addDaemon(ExaBGPDaemon, address_families=(af4, af6))
 
         as2r1 = self.bgp('as2')
 
@@ -108,17 +117,16 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
         self.addAS(1, (as1r1,))
         self.addAS(2, (as2r1,))
         # Add eBGP peering
-        ebgp_session(self, as1r1, as2r1, link_type=SHARE)
+        ebgp_session(self, as1r1, as2r1, link_type=_bgp.PLAIN)
 
         # Add test hosts
         for r in self.routers():
             self.addLink(r, self.addHost('h%s' % r))
         super().build(*args, **kwargs)
 
-
     def bgp(self, name):
         r = self.addRouter(name, use_v4=True, use_v6=True)
-        r.addDaemon(BGP, address_families=(
+        r.addDaemon(BGP, debug=('updates', 'neighbor-events', 'zebra'), address_families=(
             _bgp.AF_INET(redistribute=('connected',)),
             _bgp.AF_INET6(redistribute=('connected',))))
         return r

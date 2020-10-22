@@ -143,14 +143,16 @@ class BGPRoute(Representable):
         self.attributes = attributes
 
     def __str__(self):
-        route = "route {prefix}".format(prefix=str(self.IPNetwork))
+        route = "unicast {prefix}".format(prefix=str(self.IPNetwork))
         for attr in self.attributes:
             route += " %s" % str(attr)
+
         return route
 
 
 class ExaBGPDaemon(AbstractBGP):
     NAME = "exabgp"
+    KILL_PATTERNS = (NAME,)
 
     def __init__(self, node, port=BGP_DEFAULT_PORT, *args, **kwargs):
         super().__init__(node=node, *args, **kwargs)
@@ -163,56 +165,10 @@ class ExaBGPDaemon(AbstractBGP):
         cfg.neighbors = self._build_neighbors()
         cfg.address_families = self._address_families(
             self.options.address_families, cfg.neighbors)
-        cfg.prefixes = self._build_prefixes(self.options.prefixes)
-
         self.options.base_env.update(self.options.env)
         cfg.env = self.options.base_env
 
         return cfg
-
-    def _build_neighbors(self):
-        """
-        The Peer could have configured two address families (IPv6 and IPv4).
-        ExaBGP needs only one connection with the Peer. Hence, we keep one
-        of them if both IPv4 and IPv6 are configured. In the latter case,
-        we always prefer IPv6 BGP sessions
-        :return: The list of peers having a connection with this ExaBGP router.
-        """
-
-        def prefer_ipv6(list_neigh: Sequence['Peer']):
-            pref = None
-            for neighbor in list_neigh:
-                if pref is None:
-                    pref = neighbor
-                elif pref.family == 'ipv4' and neighbor.family == 'ipv6':
-                    pref = neighbor
-
-            assert pref is not None
-            return pref
-
-        neighbors = super(ExaBGPDaemon, self)._build_neighbors()
-
-        by_node = dict()
-        my_final_neighbors = list()
-
-        for neigh in neighbors:
-            if neigh.node not in by_node:
-                by_node[neigh.node] = list()
-
-            by_node[neigh.node].append(neigh)
-
-        for node in by_node.keys():
-            assert len(by_node[node]) <= 2  # a node could have configured both IPv6 and IPv4 at most
-            my_final_neighbors.append(prefer_ipv6(by_node[node]))
-
-        return my_final_neighbors
-
-    @staticmethod
-    def _build_prefixes(prefixes: Optional[Sequence['Representable']]) -> Sequence['Representable']:
-        if prefixes is None:
-            return list()
-
-        return prefixes
 
     @property
     def STARTUP_LINE_EXTRA(self):
@@ -253,14 +209,18 @@ class ExaBGPDaemon(AbstractBGP):
                 pid=self._file('pid')
             ),
             log=ConfigDict(
-                level='CRIT',
+                # all='true',
+                level='DEBUG',
                 destination=self._file('log'),
-                reactor='false',
-                processes='false',
-                network='false',
+                reactor='true',
+                processes='true',
+                network='true',
             ),
             api=ConfigDict(
-                cli='false'
+                cli='false',
+            ),
+            tcp=ConfigDict(
+                delay=2
             )
         )
         defaults.address_families = [AF_INET(), AF_INET6()]

@@ -1,6 +1,6 @@
 import os
 import socket
-from ipaddress import IPv4Network, IPv6Network
+from ipaddress import IPv4Network, IPv6Network, ip_network
 from typing import Optional, Union, Sequence, Tuple
 
 from .base import RouterDaemon
@@ -54,7 +54,7 @@ class Zebra(QuaggaDaemon):
     PRIO = 0
     # We want zebra to preserve existing routes in the kernel RT (e.g. those
     # set via ip route)
-    STARTUP_LINE_EXTRA = '-k'
+    STARTUP_LINE_EXTRA = ''
     KILL_PATTERNS = (NAME,)
 
     def __init__(self, *args, **kwargs):
@@ -138,7 +138,8 @@ class AccessList:
 
     def __init__(self, name: Optional[str] = None,
                  entries: Sequence[Union[AccessListEntry, str, IPv4Network,
-                                         IPv6Network]] = ()):
+                                         IPv6Network]] = (),
+                 family='ipv4'):
         """Setup a new access-list
 
         :param name: The name of the acl, which will default to acl## where ##
@@ -151,6 +152,56 @@ class AccessList:
         self.entries = [e if isinstance(e, AccessListEntry)
                         else AccessListEntry(prefix=e)
                         for e in entries]
+        self.family = family
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+
+class PrefixListEntry(AccessListEntry):
+    def __init__(self, prefix: Union[str, IPv4Network, IPv6Network], action=PERMIT,  le=None, ge=None):
+        type_mask = {'ipv4': 32, 'ipv6': 128}
+
+        _prefix = ip_network(prefix) if isinstance(prefix, str) else prefix
+        if isinstance(_prefix, IPv6Network):
+            self.family = 'ipv6'
+        elif isinstance(_prefix, IPv4Network):
+            self.family = 'ipv4'
+
+        if le is not None:
+            assert 0 <= le <= type_mask[self.family], "assertion %d <= le (%d) <= %d failed" % (0, le, type_mask[self.family])
+        if ge is not None:
+            assert 0 <= ge <= type_mask[self.family], "assertion %d <= ge (%d) <= %d failed" % (0, ge, type_mask[self.family])
+        if le is not None and ge is not None:
+            assert le >= ge, "assertion le (%d) >= ge (%d) failed! le must be lower than ge" % (le, ge)
+
+        self.le = le
+        self.ge = ge
+
+        super().__init__(_prefix, action)
+
+
+class PrefixList:
+    # Number of PFXL
+    count = 0
+
+    def __init__(self, entries, family, name=None):
+        assert family in {'ipv4', 'ipv6'}, "PrefixList unknown %s type. type must be either ipv4 or ipv6" % family
+
+        PrefixList.count += 1
+
+        self.name = name if name else 'pfxl%d' % PrefixList.count
+        self.entries = []
+        for e in entries:
+            if isinstance(e, PrefixListEntry):
+                assert e.family == family, "The prefix entry must be on the same type"
+                self.entries.append(e)
+            else:
+                ne = PrefixListEntry(prefix=e)
+                assert ne.family == family
+                self.entries.append(ne)
+
+        self.family = family
 
     def __eq__(self, other):
         return self.name == other.name
@@ -161,15 +212,17 @@ class RouteMapMatchCond:
     A class representing a RouteMap matching condition
     """
 
-    def __init__(self, cond_type: str, condition):
+    def __init__(self, cond_type: str, condition, family: Optional[str] = None):
         """
         :param condition: Can be an ip address, the id of an access
                           or prefix list
         :param cond_type: The type of condition access list, prefix list,
                           peer ...
         """
+        assert family in {'ipv4', 'ipv6'}
         self.condition = condition
         self.cond_type = cond_type
+        self.family = family
 
     def __eq__(self, other):
         return self.condition == other.condition \
@@ -206,7 +259,8 @@ class RouteMap:
                  call_action: Optional[str] = None,
                  exit_policy: Optional[str] = None, order=10,
                  proto: Sequence[str] = (), neighbor: Sequence = (),
-                 direction='in'):
+                 direction='in',
+                 family=None):
         """
         :param name: The name of the route-map, defaulting to rm##
         :param match_policy: Deny or permit the actions if the route match
@@ -240,12 +294,14 @@ class RouteMap:
         self.direction = direction
         self.order = order
         self.proto = proto
+        self.family = family
 
     def __eq__(self, other):
         return self.neighbor == other.neighbor \
                and self.direction == other.direction \
                and self.exit_policy == other.exit_policy \
-               and self.order == other.order
+               and self.order == other.order \
+               and self.family == other.family
 
     def append_match_cond(self, match_conditions):
         """
