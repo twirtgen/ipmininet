@@ -1,11 +1,14 @@
-"""" This module test the Linkfailure api """
+""""This module test the Link Failure API"""
+
+import pytest
 
 from ipmininet.clean import cleanup
 from ipmininet.ipnet import IPNet
 from ipmininet.iptopo import IPTopo
-from ipmininet.tests.utils import assert_connectivity
-import time
 from . import require_root
+from .utils import assert_connectivity, assert_node_not_connected
+from ..examples.link_failure import FailureTopo
+
 
 class Topo(IPTopo):
 
@@ -15,60 +18,105 @@ class Topo(IPTopo):
         h1 = self.addHost("h1")
         h2 = self.addHost("h2")
 
-        self.addLinks((r1,r2), (h1,r1), (h2,r2))
+        self.addLinks((r1, r2), (h1, r1), (h2, r2))
+        super().build(*args, **kwargs)
 
 
-
-"""@require_root
-def test_failurePlan():
-    try:
-        failure_plan = [("r1", "r2")]
-        net = IPNet(topo=Topo())
-        net.start()
-        time.sleep(20) #otherwise ospf still not converged
-        assert 0.0 == net.pingAll()
-        interface_down = net.runFailurePlan(failure_plan)
-        assert 100.0 == net.pingAll()
-        net.restoreLink(interface_down)
-        time.sleep(20)
-        assert 0.0 == net.pingAll()
-        net.stop()
-    finally:
-        cleanup()
-"""
 @require_root
-def test_randomFailure():
+def test_failure_topo():
     try:
-        net = IPNet(topo=Topo())
+        net = IPNet(topo=FailureTopo())
         net.start()
-        time.sleep(20)
-        assert 0.0 == net.pingAll()
-        interface_down = net.RandomFailure(1)
-        assert 100.0 == net.pingAll()
-        net.restoreLink(interface_down)
-        time.sleep(20)
-        assert 0.0 == net.pingAll()
+
+        # Check example connectivity
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
+
         net.stop()
     finally:
         cleanup()
 
-"""@require_root
+
+@require_root
+@pytest.mark.parametrize("plan", [
+    [("r1", "r2")],
+    [("h1", "r1")],
+    [("r1", "h1"), ("r2", "r1"), ("r2", "h2")],
+])
+def test_failurePlan(plan):
+    try:
+        net = IPNet(topo=Topo())
+        net.start()
+
+        # Wait for OSPF convergence
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
+
+        interface_down = net.runFailurePlan(plan)
+
+        # Check failures
+        for n1, n2 in plan:
+            assert_node_not_connected(src=net[n1], dst=net[n2], v6=False)
+            assert_node_not_connected(src=net[n1], dst=net[n2], v6=True)
+
+        net.restoreIntfs(interface_down)
+
+        # Check link restoration
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
+        net.stop()
+    finally:
+        cleanup()
+
+
+@require_root
+@pytest.mark.parametrize("downed_links", [1, 2, 3])
+def test_randomFailure(downed_links):
+    try:
+        net = IPNet(topo=Topo())
+        net.start()
+
+        # Wait for OSPF convergence
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
+
+        interface_down = net.randomFailure(downed_links)
+
+        # Check a failure between both hosts
+        assert_node_not_connected(src=net["h1"], dst=net["h2"], v6=False)
+        assert_node_not_connected(src=net["h1"], dst=net["h2"], v6=True)
+
+        net.restoreIntfs(interface_down)
+
+        # Check link restoration
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
+        net.stop()
+    finally:
+        cleanup()
+
+
+@require_root
 def test_randomFailureOnTargetedLink():
     try:
         net = IPNet(topo=Topo())
         net.start()
-        time.sleep(20)
-        assert 0.0 == net.pingAll()
-        node = net.get("r1")
-        interfaces = node.intfList()
-        interfaces = [interfaces[1].link] #use to not have to lo interface
-        interface_down = net.RandomFailure(1,weak_links=interfaces)
-        assert 100.0 == net.pingAll()
-        net.restoreLink(interface_down)
-        time.sleep(20)
-        assert 0.0 == net.pingAll()
+
+        # Wait for OSPF convergence
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
+
+        interface_down = net.randomFailure(1, weak_links=[net["r1"].intf("r1-eth0").link])
+
+        # Check a failure between both hosts
+        assert_node_not_connected(src=net["h1"], dst=net["h2"], v6=False)
+        assert_node_not_connected(src=net["h1"], dst=net["h2"], v6=True)
+
+        net.restoreIntfs(interface_down)
+
+        # Check link restoration
+        assert_connectivity(net, v6=False)
+        assert_connectivity(net, v6=True)
         net.stop()
     finally:
         cleanup()
-"""
-
