@@ -1,6 +1,7 @@
 """Classes for interfaces and links that are IP-agnostic. This basically
 enhance the TCIntf class from Mininet, and then define sane defaults for the link
 classes."""
+from copy import deepcopy
 from itertools import chain
 import subprocess
 from ipaddress import ip_interface, IPv4Interface, IPv6Interface
@@ -29,6 +30,7 @@ class IPIntf(_m.TCIntf):
         super().__init__(*args, **kwargs)
         self.isUp(setUp=True)
         self._refresh_addresses()
+        self.backup_addresses = {4: [], 6: []}
         self.restore_cmds = []
 
     @property
@@ -221,6 +223,21 @@ class IPIntf(_m.TCIntf):
     def updateAddr(self) -> Tuple[Optional[str], Optional[str]]:
         self._refresh_addresses()
         return self.ip, self.mac
+
+    def down(self, backup=True):
+        """Down the interface and, if 'backup' is true, save the current allocated IPs"""
+        if backup:
+            self.backup_addresses = deepcopy(self.addresses)
+
+        self.node.cmd("ip link set dev " + self.name + " down")
+
+    def up(self, restore=True):
+        """Up the interface and, if 'restore' is true, restore the saved addresses"""
+        self.isUp(setUp=True)
+        if restore:
+            self.setIP(self.backup_addresses[4] + self.backup_addresses[6])
+            for cmd in self.restore_cmds:
+                self.node.cmd(cmd)
 
 
 def _addresses_of(devname: str, node: Optional[Node] = None):

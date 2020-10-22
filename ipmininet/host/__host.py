@@ -42,7 +42,6 @@ class IPHost(IPNode):
         cmd = "ip -{ver} route del default; ip -{ver} route add default {params}".format(ver=version, params=params)
         if isinstance(intf, IPIntf):
             intf.restore_cmds.append(cmd)
-        print(cmd)
         self.cmd(cmd)
 
     def createDefaultRoutes(self):

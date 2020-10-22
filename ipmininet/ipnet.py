@@ -547,9 +547,8 @@ class IPNet(Mininet):
                 log.error("Node " + str(e) + " does not exist\n")
                 interfaces_down = []
         for interface in interfaces_down:
-            commande = "ip link set dev " + str(interface) + " down"
-            interface.node.cmd(commande)
-            log.output("** Interface "+ str(interface) +" down\n")
+            interface.down(backup=True)
+            log.output("** Interface " + str(interface) + " down\n")
         return interfaces_down
 
     def restoreIntfs(self, interfaces: List[IPIntf]):
@@ -558,8 +557,7 @@ class IPNet(Mininet):
         """
         log.output("** starting restoring link\n")
         for interface in interfaces:
-            commande = "ip link set dev " + str(interface) + " up"
-            interface.node.cmd(commande)
+            interface.up(restore=True)
             log.output("** interfaces " + str(interface) + " up\n")
 
     def randomFailure(self, n: int, weak_links: Optional[List[IPLink]] = None) -> List[IPIntf]:
@@ -575,13 +573,12 @@ class IPNet(Mininet):
             return []
         else:
             downed_interfaces = []
-            down_interfaces = random.sample(all_links,k=n)
-            for interface in down_interfaces:
-                router = interface.intf1.node
-                downed_interfaces.append(interface.intf1)
-                commande = "ip link set dev "+ str(interface.intf1) + " down"
-                router.cmd(commande)
-                log.output("** Interface "+ str(interface.intf1)  + " down\n")
+            down_links = random.sample(all_links, k=n)
+            for link in down_links:
+                for intf in [link.intf1, link.intf2]:
+                    intf.down(backup=True)
+                    log.output("** Interface " + str(intf) + " down\n")
+                    downed_interfaces.append(intf)
             return downed_interfaces 
 
 
