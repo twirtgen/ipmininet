@@ -117,7 +117,7 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
         self.addAS(1, (as1r1,))
         self.addAS(2, (as2r1,))
         # Add eBGP peering
-        ebgp_session(self, as1r1, as2r1, link_type=_bgp.PLAIN)
+        ebgp_session(self, as1r1, as2r1)
 
         # Add test hosts
         for r in self.routers():

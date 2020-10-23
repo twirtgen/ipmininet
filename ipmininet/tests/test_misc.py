@@ -9,7 +9,7 @@ from ipmininet.clean import cleanup
 from ipmininet.examples.static_address_network import StaticAddressNet
 from ipmininet.ipnet import IPNet
 from ipmininet.link import _parse_addresses
-from ipmininet.router.config.utils import ip_statement
+from ipmininet.router.config.utils import ip_statement, family_translate
 from . import require_root
 
 

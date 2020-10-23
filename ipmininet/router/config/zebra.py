@@ -1,5 +1,6 @@
 import os
 import socket
+from abc import abstractmethod, ABC
 from ipaddress import IPv4Network, IPv6Network, ip_network
 from typing import Optional, Union, Sequence, Tuple
 
@@ -9,6 +10,15 @@ from .utils import ConfigDict
 #  Route Map actions
 DENY = 'deny'
 PERMIT = 'permit'
+
+
+def get_family(prefix: Union[IPv4Network, IPv6Network]) -> Optional[str]:
+    if isinstance(prefix, IPv4Network):
+        return 'ipv4'
+    elif isinstance(prefix, IPv6Network):
+        return 'ipv6'
+
+    return None
 
 
 class QuaggaDaemon(RouterDaemon):
@@ -112,99 +122,130 @@ class CommunityList:
         self.name = name if name else 'cml%d' % CommunityList.count
         self.action = action
         self.community = community
+        self.family = 'community'
 
     def __eq__(self, other):
         return self.name == other.name and self.action == other.action
 
 
-class AccessListEntry:
+class Entry:
+    def __init__(self, prefix: Union[str, IPv4Network, IPv6Network],
+                 action=PERMIT, family=None):
+        """
+        :param prefix: The ip_interface prefix for that ACL entry
+        :param action: Whether that prefix belongs to the ACL (PERMIT)
+                       or not (DENY)
+        """
+
+        if isinstance(prefix, str):
+            if prefix == 'any':
+                assert family is not None
+                _prefix = prefix
+            else:
+                _prefix = ip_network(prefix)
+                if family is not None:
+                    assert get_family(self.prefix) == family, "prefix family %s != family (%s)" % (get_family(self.prefix), family)
+        else:
+            _prefix = prefix
+
+        self.prefix = _prefix
+        self.action = action
+        self.family = family if family else get_family(self.prefix)
+
+
+class AccessListEntry(Entry):
     """A zebra access-list entry"""
 
-    def __init__(self, prefix: Union[str, IPv4Network, IPv6Network],
-                 action=PERMIT):
-        """:param prefix: The ip_interface prefix for that ACL entry
-        :param action: Whether that prefix belongs to the ACL (PERMIT)
-                        or not (DENY)"""
-        self.prefix = prefix
-        self.action = action
+    def __init__(self, prefix: Union[str, IPv4Network, IPv6Network], action=PERMIT, family=None):
+        super().__init__(prefix, action, family)
 
 
-class AccessList:
-    """A zebra access-list class. It contains a set of AccessListEntry,
-    which describes all prefix belonging or not to this ACL"""
-
-    # Number of ACL
-    count = 0
-
-    def __init__(self, name: Optional[str] = None,
-                 entries: Sequence[Union[AccessListEntry, str, IPv4Network,
-                                         IPv6Network]] = (),
-                 family='ipv4'):
-        """Setup a new access-list
-
-        :param name: The name of the acl, which will default to acl## where ##
-                     is the instance number
-        :param entries: A sequence of AccessListEntry instance,
-                        or of ip_interface which describes which prefixes
-                        are composing the ACL"""
-        AccessList.count += 1
-        self.name = name if name else 'acl%d' % AccessList.count
-        self.entries = [e if isinstance(e, AccessListEntry)
-                        else AccessListEntry(prefix=e)
-                        for e in entries]
-        self.family = family
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-
-class PrefixListEntry(AccessListEntry):
-    def __init__(self, prefix: Union[str, IPv4Network, IPv6Network], action=PERMIT,  le=None, ge=None):
+class PrefixListEntry(Entry):
+    def __init__(self, prefix: Union[str, IPv4Network, IPv6Network], action=PERMIT, family=None, le=None, ge=None):
         type_mask = {'ipv4': 32, 'ipv6': 128}
 
-        _prefix = ip_network(prefix) if isinstance(prefix, str) else prefix
-        if isinstance(_prefix, IPv6Network):
-            self.family = 'ipv6'
-        elif isinstance(_prefix, IPv4Network):
-            self.family = 'ipv4'
+        super().__init__(prefix, action, family)
+
+        # The 'any' prefix-list entry has a special action
+        if self.prefix == 'any':
+            self.prefix = ip_network("0.0.0.0/0") if self.family == 'ipv4' \
+                else ip_network('::/0')
+            self.le = type_mask[self.family]
+            return
 
         if le is not None:
-            assert 0 <= le <= type_mask[self.family], "assertion %d <= le (%d) <= %d failed" % (0, le, type_mask[self.family])
+            assert 0 <= le <= type_mask[self.family], "assertion %d <= le (%d) <= %d failed" % (
+            0, le, type_mask[self.family])
         if ge is not None:
-            assert 0 <= ge <= type_mask[self.family], "assertion %d <= ge (%d) <= %d failed" % (0, ge, type_mask[self.family])
+            assert 0 <= ge <= type_mask[self.family], "assertion %d <= ge (%d) <= %d failed" % (
+            0, ge, type_mask[self.family])
         if le is not None and ge is not None:
             assert le >= ge, "assertion le (%d) >= ge (%d) failed! le must be lower than ge" % (le, ge)
 
         self.le = le
         self.ge = ge
 
-        super().__init__(_prefix, action)
 
-
-class PrefixList:
-    # Number of PFXL
+class ZebraList(ABC):
     count = 0
 
-    def __init__(self, entries, family, name=None):
+    @property
+    @abstractmethod
+    def prefix_name(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def Entry(self):
+        raise NotImplementedError
+
+    def __init__(self, family, entries: Sequence[Union['ZebraList.Entry',
+                                                       str, IPv4Network,
+                                                       IPv6Network]] = (), name=None):
         assert family in {'ipv4', 'ipv6'}, "PrefixList unknown %s type. type must be either ipv4 or ipv6" % family
 
-        PrefixList.count += 1
+        ZebraList.count += 1
 
-        self.name = name if name else 'pfxl%d' % PrefixList.count
+        self.name = name if name else '%s%d' % (self.prefix_name, ZebraList.count)
         self.entries = []
         for e in entries:
-            if isinstance(e, PrefixListEntry):
-                assert e.family == family, "The prefix entry must be on the same type"
+            if isinstance(e, self.Entry):
+                assert e.family == family, "The prefix entry must be of the same type"
                 self.entries.append(e)
+            elif isinstance(e, str) and e == 'any':
+                self.entries.append(self.Entry(prefix=e, family=family))
+            elif isinstance(e, IPv4Network) or isinstance(e, IPv6Network) or isinstance(e, str):
+                self.entries.append(self.Entry(prefix=e))
             else:
-                ne = PrefixListEntry(prefix=e)
-                assert ne.family == family
-                self.entries.append(ne)
+                raise ValueError('"%s" is not a valid prefix entry for the %s family' % (e, family))
 
         self.family = family
 
     def __eq__(self, other):
         return self.name == other.name
+
+
+class PrefixList(ZebraList):
+    @property
+    def prefix_name(self):
+        return 'pfxl'
+
+    @property
+    def Entry(self):
+        return PrefixListEntry
+
+
+class AccessList(ZebraList):
+    """A zebra access-list class. It contains a set of AccessListEntry,
+    which describes all prefix belonging or not to this ACL"""
+
+    @property
+    def prefix_name(self):
+        return 'acl'
+
+    @property
+    def Entry(self):
+        return AccessListEntry
 
 
 class RouteMapMatchCond:
@@ -212,21 +253,25 @@ class RouteMapMatchCond:
     A class representing a RouteMap matching condition
     """
 
-    def __init__(self, cond_type: str, condition, family: Optional[str] = None):
+    def __init__(self, cond_type: str, condition, family=None):
         """
         :param condition: Can be an ip address, the id of an access
                           or prefix list
         :param cond_type: The type of condition access list, prefix list,
                           peer ...
+        :param family: if cond_type is an access-list or a prefix-list,
+                       specify the family of the list (either ipv4 or ipv6)
         """
-        assert family in {'ipv4', 'ipv6'}
+        if family:
+            assert family in {'ipv4', 'ipv6', 'community'}, "Unrecognized family type (%s)" % family
         self.condition = condition
         self.cond_type = cond_type
         self.family = family
 
     def __eq__(self, other):
         return self.condition == other.condition \
-               and self.cond_type == other.cond_type
+               and self.cond_type == other.cond_type \
+               and self.family == other.family
 
 
 class RouteMapSetAction:
@@ -279,11 +324,15 @@ class RouteMap:
         :param direction: Direction of the routemap(in, out, both)
         """
         RouteMap.count += 1
+
+        assert family in {'ipv4', 'ipv6', 'community'}
+
         self.name = name if name else 'rm%d' % RouteMap.count
         self.match_policy = match_policy
         self.match_cond = [e if isinstance(e, RouteMapMatchCond)
                            else RouteMapMatchCond(cond_type=e[0],
-                                                  condition=e[1])
+                                                  condition=e[1],
+                                                  family=family)
                            for e in match_cond]
         self.set_actions = [e if isinstance(e, RouteMapSetAction)
                             else RouteMapSetAction(action_type=e[0], value=e[1])
