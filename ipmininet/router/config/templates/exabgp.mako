@@ -8,21 +8,27 @@ neighbor ${n.peer} {
     listen ${node.exabgp.port};
     connect ${n.port};
 
-    group-updates false;
+    %if node.exabgp.passive:
+    passive;
+    %endif
 
     family {
     %for af in node.exabgp.address_families:
+        %if ip_family(n.peer) == af.name :
         ${af.name} unicast;
+        %endif
     %endfor
     }
 
     announce {
         %for af in node.exabgp.address_families:
+            %if ip_family(n.peer) == af.name:
         ${af.name} {
-            %for route in af.routes:
+                %for route in af.routes:
             ${route};
-            %endfor
+                %endfor
         }
+            %endif
         %endfor
     }
 }

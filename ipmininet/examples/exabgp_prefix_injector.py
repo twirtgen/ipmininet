@@ -3,7 +3,7 @@ import itertools
 import random
 
 from ipmininet.iptopo import IPTopo
-from ipmininet.router.config import SHARE, ebgp_session, RouterConfig, BGP, ExaBGPDaemon, BGPRoute, BGPAttribute, \
+from ipmininet.router.config import ebgp_session, RouterConfig, BGP, ExaBGPDaemon, BGPRoute, BGPAttribute, \
     ExaList
 import ipmininet.router.config.bgp as _bgp
 
@@ -64,16 +64,10 @@ def build_bgp_route(ip_networks, my_as):
 
 
 class ExaBGPTopoInjectPrefixes(IPTopo):
-    """This topology builds a 4-AS network exchanging BGP reachability as shown
-    in the figure below. Shared cost are described with ' = ',
-    client - provider with ' $ '.
-
-    ASes always favor routes received from clients, then routes from shared-cost
-    peering, and finally, routes received from providers.
-    This is not influenced by the AS path length.
-
-    This topology is taken from
-    https://www.computer-networking.info/exercises/html/ex-routing-policies.html
+    """
+    This simple topology made up of 2 routers, as1 and as2 from both different
+    ASN, shows an example on how to use ExaBGP to inject both IPv4 and IPv6
+    routes to its remote peer.
     """
 
     @staticmethod
@@ -96,7 +90,7 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
         """
          +--+--+     +--+--+
          | as1 +-----+ as2 |
-         +--+--+  =  +--+--+
+         +--+--+     +--+--+
         """
 
         af4 = _bgp.AF_INET(routes=self.gen_simple_prefixes_v4(1))
@@ -126,7 +120,7 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
 
     def bgp(self, name):
         r = self.addRouter(name, use_v4=True, use_v6=True)
-        r.addDaemon(BGP, debug=('updates', 'neighbor-events', 'zebra'), address_families=(
+        r.addDaemon(BGP, address_families=(
             _bgp.AF_INET(redistribute=('connected',)),
             _bgp.AF_INET6(redistribute=('connected',))))
         return r
