@@ -10,8 +10,13 @@ import pytest
 
 from ipmininet.clean import cleanup
 from ipmininet.examples.exabgp_prefix_injector import ExaBGPTopoInjectPrefixes
+
+from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
+
+from ipmininet.clean import cleanup
 from ipmininet.ipnet import IPNet
-from ipmininet.router.config import BGPRoute, BGPAttribute, ExaList
+from ipmininet.router.config import RouterConfig, ExaBGPDaemon, AF_INET, AF_INET6, \
+    ebgp_session, BGPRoute, BGPAttribute, ExaList, BGP
 from ipmininet.tests import require_root
 
 exa_routes = {
