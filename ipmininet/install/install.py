@@ -185,7 +185,7 @@ def install_exabgp(output_dir: str, may_fail=False):
 
     # create self-contained executable
     sh('python3 -m zipapp -o {executable_path} -m exabgp.application:main  -p "/usr/bin/env python3" lib'
-       .format(executable_path=exabgp_self_executable), cwd=exabgp_path_src_dir, may_fail=false)
+       .format(executable_path=exabgp_self_executable), cwd=exabgp_path_src_dir, may_fail=may_fail)
 
     if os.path.exists(final_link):
         os.remove(final_link)
