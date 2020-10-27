@@ -132,6 +132,123 @@ The following code shows how to use all these abstractions:
 
             super().build(*args, **kwargs)
 
+ExaBGP
+------
+
+ExaBGP is a daemon that help to inject custom BGP routes to another BGP routing daemon.
+This daemon do not replace a real routing daemon (e.g. FRRouting BGPD) as ExaBGP do not
+install routes to the FIB of the node. For example ExaBGP can be used to simulate a
+transit network router that inject many routes to another AS. We can then check the routing
+decision of the latter AS for the routes send from ExaBGP.
+
+As for BGP, ExaBGP can be added as a daemon of the node with ``router.addDaemon(BGP, **kwargs)``.
+The default ExaBGP parameters that are set for the daemon are :
+
+.. automethod:: ipmininet.router.config.exabgp.ExaBGPDaemon.set_defaults
+    :noindex:
+
+To add custom routes, we defined several helper classes that help to represent a valid BGP Route for ExaBGP:
+
+.. autoclass:: ipmininet.router.config.exabgp.BGPRoute
+    :noindex:
+
+.. autoclass:: ipmininet.router.config.exabgp.BGPAttribute
+    :noindex:
+
+.. autoclass:: ipmininet.router.config.exabgp.ExaList
+    :noindex:
+
+.. autoclass:: ipmininet.router.config.exabgp.HexRepresentable
+    :noindex:
+
+.. autoclass:: ipmininet.router.config.exabgp.BGPAttributeFlags
+    :noindex:
+
+
+The following code shows how to use the ExaBGP daemon to add custom routes :
+
+.. testcode:: exabgp
+    from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
+
+    from ipmininet.clean import cleanup
+    from ipmininet.ipnet import IPNet
+    from ipmininet.iptopo import IPTopo
+    from ipmininet.router.config import RouterConfig, ExaBGPDaemon, AF_INET, AF_INET6, \
+        ebgp_session, BGPRoute, BGPAttribute, ExaList, BGP
+
+    exa_routes = {
+        'ipv4': [
+            BGPRoute(ip_network('8.8.8.0/24'), [BGPAttribute("next-hop", "self"),
+                                                BGPAttribute("as-path", ExaList([1, 56, 97])),
+                                                BGPAttribute("med", 42),
+                                                BGPAttribute("origin", "egp")]),
+            BGPRoute(ip_network('30.252.0.0/16'), [BGPAttribute("next-hop", "self"),
+                                                   BGPAttribute("as-path", ExaList([1, 48964, 598])),
+                                                   BGPAttribute("med", 100),
+                                                   BGPAttribute("origin", "incomplete"),
+                                                   BGPAttribute("community", ExaList(["1:666", "468:45687"]))]),
+            BGPRoute(ip_network('1.2.3.4/32'), [BGPAttribute("next-hop", "self"),
+                                                BGPAttribute("as-path", ExaList([1, 49887, 39875, 3, 4])),
+                                                BGPAttribute("origin", "igp"),
+                                                BGPAttribute("local-preference", 42)])
+        ],
+        'ipv6': [
+            BGPRoute(ip_network("dead:beef:15:dead::/64"), [BGPAttribute("next-hop", "self"),
+                                                            BGPAttribute("as-path", ExaList([1, 4, 3, 5])),
+                                                            BGPAttribute("origin", "egp"),
+                                                            BGPAttribute("local-preference", 1000)]),
+            BGPRoute(ip_network("bad:c0ff:ee:bad:c0de::/80"), [BGPAttribute("next-hop", "self"),
+                                                               BGPAttribute("as-path", ExaList([1, 3, 4])),
+                                                               BGPAttribute("origin", "egp"),
+                                                               BGPAttribute("community",
+                                                                            ExaList(
+                                                                                ["2914:480", "2914:413", "2914:4621"]))]),
+            BGPRoute(ip_network("1:5ee:bad:c0de::/64"), [BGPAttribute("next-hop", "self"),
+                                                         BGPAttribute("as-path", ExaList([1, 89, 42, 5])),
+                                                         BGPAttribute("origin", "igp")])
+        ]
+    }
+
+
+    class ExaBGPTopo(IPTopo):
+        def build(self, *args, **kwargs):
+            """
+              +---+---+---+     +---+---+---+
+              |           |     |           |
+              |    as1    |     |    as2    |
+              |   ExaBGP  +-----+  FRR BGP  |
+              |           |     |           |
+              +---+---+---+     +---+---+---+
+            """
+
+            af4 = AF_INET(routes=exa_routes['ipv4'])
+            af6 = AF_INET6(routes=exa_routes['ipv6'])
+
+            # Add all routers
+            as1 = self.addRouter("as1", config=RouterConfig, use_v4=True, use_v6=True)
+            as1.addDaemon(ExaBGPDaemon, address_families=(af4, af6))
+
+            as2 = self.bgp('as2')
+
+            # Add links
+            las12 = self.addLink(as1, as2)
+            las12[as1].addParams(ip=("10.1.0.1/24", "fd00:12::1/64",))
+            las12[as2].addParams(ip=("10.1.0.2/24", "fd00:12::2/64",))
+
+            # Set AS-ownerships
+            self.addAS(1, (as1,))
+            self.addAS(2, (as2,))
+            # Add eBGP peering
+            ebgp_session(self, as1, as2)
+
+            super().build(*args, **kwargs)
+
+        def bgp(self, name):
+            r = self.addRouter(name, use_v4=True, use_v6=True)
+            r.addDaemon(BGP, debug=('updates', 'neighbor-events', 'zebra'), address_families=(
+                AF_INET(redistribute=('connected',)),
+                AF_INET6(redistribute=('connected',))))
+            return r
 
 IPTables
 --------

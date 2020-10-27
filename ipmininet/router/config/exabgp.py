@@ -8,6 +8,7 @@ from .utils import ConfigDict
 class Representable(ABC):
     """
     String representation for ExaBGP configuration
+    Each sub-part of any ExaBGP route must be representable and must override the default __str__ function
     """
 
     @abstractmethod
@@ -17,7 +18,36 @@ class Representable(ABC):
 
 class HexRepresentable(Representable):
     """
-    Representation of an hexadecimal value for ExaBGP
+    Representation of an hexadecimal value for ExaBGP.
+
+    In the case of an unknown ExaBGP attribute, the value cannot be interpreted
+    by ExaBGP. Then it is needed to use its hexadecimal representation. This Abstract
+    class must be implemented by any "unrepresentable" BGP attribute.
+
+
+    Example:
+        Imagine you want to represent a new 64-bits attribute. All you have to do
+        is to extend the HexRepresentable class and then create a new BGPAttribute
+        as usual. The following code shows an example:
+
+        .. code-block:: python
+
+            class LongAttr(HexRepresentable):
+                _uint64_max = 18446744073709551615
+
+                def __init__(self, my_long):
+                    assert 0 <= my_long < LongAttr._uint64_max
+                    self.val = my_long
+
+                def hex_repr(self):
+                    return '{0:#0{1}X}'.format(self.val, 18)
+
+                def __str__(self):
+                    return self.hex_repr()
+
+            # your new attribute
+            my_new_attr = BGPAttribute(42, LongAttr(2658), BGPAttributesFlags(1,1,0,0))
+
     """
     @abstractmethod
     def hex_repr(self) -> str:
@@ -56,12 +86,13 @@ class ExaList(HexRepresentable):
 class BGPAttributeFlags(HexRepresentable):
     """
     Represents the flags part of a BGP attribute (RFC 4271 section 4.3)
-    The flags are an 8-bits integer value in the form O T P E 0 0 0 0
+    The flags are an 8-bits integer value in the form `O T P E 0 0 0 0`.
+    When :
 
-    When bit O is set to 0: the attribute is Well-Known. If 1, it is optional
-         bit T is set to 0: the attribute is not Transitive. If 1, it is transitive
-         bit P is set to 0: the attribute is complete; If 1, partial
-         bit E is set to 0: the attribute is of length < 256 bits. If set to 1: 256 <= length < 2^{16}
+    * bit `O` is set to 0: the attribute is Well-Known. If 1, it is optional
+    * bit `T` is set to 0: the attribute is not Transitive. If 1, it is transitive
+    * bit `P` is set to 0: the attribute is complete; If 1, partial
+    * bit `E` is set to 0: the attribute is of length < 256 bits. If set to 1: 256 <= length < 2^{16}
 
     The last 4 bits are unused
 
@@ -131,18 +162,21 @@ class BGPAttribute(Representable):
                  flags: Optional['BGPAttributeFlags'] = None):
         """
         Constructs an Attribute known from ExaBGP or an unknown attribute if flags is
-        not None.
-
-        :param attr_type: In the case of a Known attribute, attr_type is a valid string
-        recognised by ExaBGP. In the case of an unknown attribute, attr_type is the interger
-        ID of the attribute.
-        :param val: The actual value of the attribute
-        :param flags: If None, the BGPAttribute object contains a known attribute from ExaBGP.
-        In this case, the representation of this attribute will be a string.
-        If flags is an instance of BGPAttribute, the hexadecimal representation will be used
-        :raise ValueError if the initialisation of BGPAttribute fails. Either because type_attr
+        not None. It raises a ValueError if the initialisation of BGPAttribute fails. Either because type_attr
         is not an int (for an unknown attribute), or the string of type_attr is not recognised
         by ExaBGP (for a known attribute)
+
+        :param attr_type: In the case of a Known attribute, attr_type is a valid string
+                          recognised by ExaBGP. In the case of an unknown attribute, attr_type is the integer
+                          ID of the attribute. If attr_type is a string it must be a valid string recognized
+                          by ExaBGP. Valid strings are:
+                          'next-hop', 'origin', 'med', 'as-path', 'local-preference', 'atomic-aggregate',
+                          'aggregator', 'originator-id', 'cluster-list','community', 'large-community',
+                          'extended-community', 'name', 'aigp'
+        :param val: The actual value of the attribute
+        :param flags: If None, the BGPAttribute object contains a known attribute from ExaBGP.
+                      In this case, the representation of this attribute will be a string.
+                      If flags is an instance of BGPAttribute, the hexadecimal representation will be used
         """
 
         if flags is None:
@@ -246,16 +280,33 @@ class ExaBGPDaemon(AbstractBGP):
 
     def set_defaults(self, defaults):
         """
-        :param env: a dictionary of all the environment variables that configure ExaBGP
+        :param env: a dictionary of all the environment variables that configure ExaBGP.
                     Type "exabgp --help" to take a look on every environment variable.
                     env.tcp.delay is set by default to 2 min as FRRouting BGPD daemon
                     seems to reject routes if ExaBGP injects routes to early.
-               address_families: the routes to inject for both IPv4 and IPv6 unicast
-                                 AFI.
-               passive: Tells to ExaBGP to not send active BGP Open messages. The daemon
-                        waits until the remote peer send first the Open message to start
+                    Each environment variable is either a string or an int.
+
+                    The following environment variable are set :
+
+                    * daemon.user = 'root'
+                    * daemon.drop = 'false'
+                    * daemon.daemonize = 'false'
+                    * daemon.pid = <default configuration folder /tmp/exabgp_<node>.pid>
+
+                    * log.level = 'CRIT'
+                    * log.destination = <default configuration folder /tmp/exabgp_<node>.log>
+                    * log.reactor = 'false'
+                    * log.processes = false'
+                    * log.network = 'false'
+
+                    * api.cli = 'false'
+
+                    * tcp.delay = 2 # waits at most 2 minutes
+        :param address_families: the routes to inject for both IPv4 and IPv6 unicast AFI.
+        :param passive: Tells to ExaBGP to not send active BGP Open messages. The daemon
+                        waits until the remote peer sends first the Open message to start
                         the BGP session. Its default value is set to True.
-        :return:
+        :return: The default configuration of this ExaBGP daemon
         """
         defaults.base_env = ConfigDict(
             daemon=ConfigDict(
