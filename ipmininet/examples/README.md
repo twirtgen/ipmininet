@@ -42,6 +42,7 @@ The following sections will detail the topologies.
    - [IPv6SegmentRouting](#ipv6segmentrouting)
    - [TCNetwork](#tcnetwork)
    - [TCAdvancedNetwork](#tcadvancednetwork)
+   - [ExaBGPPrefixInjector](#exabgpprefixinjector)
 
 
 ## SimpleOSPFNetwork
@@ -491,3 +492,15 @@ _args_ : n/a
 This network emulates delay and bandwidth constraints on the links.
 But it does so without falling into either tc or mininet pitfalls.
 Look at IPMininet documentation for more details.
+
+## ExaBGPPrefixInjector
+
+_topo name_ : exabgp_prefix_injector
+_args_ : n/a
+
+This network contains two routers, as1 and as2. as1 runs ExaBGP daemon
+while as2 runs FRRouting BGP daemon. as1 is responsible for injecting
+custom BGP routes for both IPv4 and IPv6 unicast families to as2.
+
+When the operation is done, as2 BGP RIB is filled with 3 IPv4 and 3
+IPv6 prefixes with random BGP attributes.
