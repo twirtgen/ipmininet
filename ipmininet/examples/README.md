@@ -19,6 +19,7 @@ The following sections will detail the topologies.
    - [BGPPolicies](#bgppolicies)
    - [BGPPoliciesAdjust](#bgppoliciesadjust)
    - [IPTables](#iptables)
+   - [LinkFailure](#linkfailure)
    - [GRETopo](#gretopo)
    - [SSHd](#sshd)
    - [RouterAdvNetwork](#routeradvnetwork)
@@ -210,6 +211,21 @@ You can test this by trying to ping(6) both routers, use nc to (try to)
 exchange data over TCP, or [tracebox](http://www.tracebox.org) to send a crafted TCP
 packet not part of an already established session.
 
+## LinkFailure
+
+_topo name_ : failure
+_args_ : n/a
+
+This network spawns 4 routers: r1, r2 and r3 are in a full mesh and r4 is
+connected to r3. Once the network is ready and launched, the script will:
+
+1. Down links between routers given in the list of the failure plan.
+2. Down two random links of the entire network
+3. Randomly down one link of r1. Either the link r1 - r2 or r1 - r3
+
+For each of these 3 scenario, the network will be rebuilt on its initial
+configuration. At the end of the failure simulation, the network should be
+restored back to its initial configuration.
 
 ## GRETopo
 

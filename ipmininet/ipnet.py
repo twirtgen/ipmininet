@@ -533,6 +533,7 @@ class IPNet(Mininet):
 
     def runFailurePlan(self, failure_plan: List[Tuple[str, str]]) -> List[IPIntf]:
         """Run a failure plan
+
             :param: A list of pairs of node names: links connecting these two links will be downed
             :return: A list of interfaces that were downed
         """
@@ -553,6 +554,7 @@ class IPNet(Mininet):
 
     def restoreIntfs(self, interfaces: List[IPIntf]):
         """Restore interfaces
+
             :param interfaces: the list of interfaces to restore
         """
         log.output("** starting restoring link\n")
@@ -562,6 +564,7 @@ class IPNet(Mininet):
 
     def randomFailure(self, n: int, weak_links: Optional[List[IPLink]] = None) -> List[IPIntf]:
         """Randomly down 'n' link
+
             :param n: the number of link to be downed
             :param weak_links: the list of links that can be downed; if set to None, every network link can be downed
             :return: the list of interfaces which were downed
