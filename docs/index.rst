@@ -27,6 +27,7 @@ Github issues.
     tc
     srv6
     topologydb
+    link_failure
     contribute
     api/modules
 
