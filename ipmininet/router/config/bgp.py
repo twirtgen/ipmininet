@@ -300,7 +300,7 @@ class BGPConfig:
                               filter_list: Sequence[Union[AccessList,
                                                           CommunityList,
                                                           PrefixList]],
-                              family=None):
+                              family: str):
         match_cond = []
         assert family in {'ipv4', 'ipv6'}, "Bad family %s" % family
         access_lists = self.topo.getNodeInfo(self.router, 'bgp_access_lists',

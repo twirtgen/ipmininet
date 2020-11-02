@@ -12,10 +12,11 @@ DENY = 'deny'
 PERMIT = 'permit'
 
 
-def get_family(prefix: Union[IPv4Network, IPv6Network]) -> Optional[str]:
-    if isinstance(prefix, IPv4Network):
+def get_family(prefix: Union[str, IPv4Network, IPv6Network]) -> Optional[str]:
+    pfx = ip_network(prefix) if isinstance(prefix, str) else prefix
+    if pfx.version == 4:
         return 'ipv4'
-    elif isinstance(prefix, IPv6Network):
+    elif pfx.version == 6:
         return 'ipv6'
 
     return None
@@ -253,7 +254,7 @@ class RouteMapMatchCond:
     A class representing a RouteMap matching condition
     """
 
-    def __init__(self, cond_type: str, condition, family=None):
+    def __init__(self, cond_type: str, condition, family: Optional[str] = None):
         """
         :param condition: Can be an ip address, the id of an access
                           or prefix list
