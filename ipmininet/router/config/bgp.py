@@ -440,12 +440,10 @@ class BGP(QuaggaDaemon, AbstractBGP):
         Build and return a list of access_filter
         :return:
         """
-        node_access_lists = self._node.get('bgp_access_lists')
-        return [] if node_access_lists is None else node_access_lists
+        return self._node.get('bgp_access_lists', val=list())
 
     def build_prefix_list(self):
-        node_prefix_lists = self._node.get('bgp_prefix_lists')
-        return [] if node_prefix_lists is None else node_prefix_lists
+        return self._node.get('bgp_prefix_lists', val=list())
 
     def build_route_map(self, neighbors: Sequence['Peer']) -> List[RouteMap]:
         """
