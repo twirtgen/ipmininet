@@ -11,7 +11,7 @@ from mako.lookup import TemplateLookup
 from typing import TYPE_CHECKING, Iterable, Optional, Dict, Union, Type, \
     Tuple, Sequence, List, Set
 
-from .utils import ConfigDict, ip_statement, family_translate, ip_family
+from .utils import ConfigDict, ip_statement
 from ipmininet.utils import require_cmd, realIntfList
 from ipmininet.link import OrderedAddress, IPIntf
 
@@ -328,8 +328,6 @@ class Daemon(metaclass=abc.ABCMeta):
                 cfg.current_filename = filename
                 kwargs["node"] = cfg
                 kwargs["ip_statement"] = ip_statement
-                kwargs["ip_family"] = ip_family
-                kwargs["family_translate"] = family_translate
                 template = self.template_lookup.get_template(
                     self.template_filenames[i])
                 cfg_content[filename] = template.render(**kwargs)

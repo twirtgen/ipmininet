@@ -36,25 +36,3 @@ def ip_statement(ip: Union[int, str, IPv6Address, IPv4Address]):
     if not isinstance(ip, int):
         ip = ip_interface(str(ip)).version
     return 'ipv6' if ip == 6 else 'ip'
-
-
-def ip_family(ip: Union[int, str, IPv6Address, IPv4Address]):
-    """Return the ip family for a given ip prefix
-
-    :type ip: ip_interface, ip_network, ip_address, int, str"""
-    if not isinstance(ip, int):
-        ip = ip_interface(str(ip)).version
-    return 'ipv6' if ip == 6 else 'ipv4'
-
-
-def family_translate(family: str):
-    """
-    Translate an IP family to its zebra ip statement
-    :param family: the ip family. Either ipv4 or ipv6
-    """
-    if family == 'ipv4':
-        return 'ip'
-    elif family == 'ipv6':
-        return 'ipv6'
-    else:
-        raise ValueError("%s is not a valid address family" % family)

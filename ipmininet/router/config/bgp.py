@@ -9,7 +9,6 @@ from ipmininet.link import IPIntf
 from ipmininet.overlay import Overlay
 from ipmininet.utils import realIntfList
 from .base import RouterDaemon
-from .utils import ip_statement, family_translate
 from .zebra import QuaggaDaemon, Zebra, RouteMap, AccessList, \
     RouteMapMatchCond, CommunityList, RouteMapSetAction, PERMIT, DENY, PrefixList, PrefixListEntry
 
@@ -462,7 +461,7 @@ class BGP(QuaggaDaemon, AbstractBGP):
                     if neighbor.node == remote_peer:
                         peers.append(neighbor)
                 for peer in peers:
-                    if ip_statement(peer.peer) == family_translate(kwargs['family']):
+                    if peer.family == kwargs['family']:
                         kwargs['neighbor'] = peer
                         rm = RouteMap(**kwargs)
                         # If route map already exist, add conditions and actions
@@ -499,6 +498,18 @@ class AddressFamily:
         self.redistribute = redistribute
         self.neighbors = []  # type: List[Peer]
         self.routes = routes
+
+    @property
+    def family(self):
+        """
+        :return: the AddressFamily to be used in FRRouting configuration
+        """
+        if self.name == 'ipv4':
+            return 'ip'
+        elif self.name == 'ipv6':
+            return 'ip6'
+        else:
+            ValueError("Unsupported AddressFamily %s" % self.name)
 
 
 def AF_INET(*args, **kwargs):

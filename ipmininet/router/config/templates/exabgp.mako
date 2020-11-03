@@ -14,7 +14,7 @@ neighbor ${n.peer} {
 
     family {
     %for af in node.exabgp.address_families:
-        %if ip_family(n.peer) == af.name :
+        %if n.family == af.name :
         ${af.name} unicast;
         %endif
     %endfor
@@ -22,7 +22,7 @@ neighbor ${n.peer} {
 
     announce {
         %for af in node.exabgp.address_families:
-            %if ip_family(n.peer) == af.name:
+            %if n.family == af.name:
         ${af.name} {
                 %for route in af.routes:
             ${route};

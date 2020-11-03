@@ -153,6 +153,12 @@ class Entry:
         self.action = action
         self.family = family if family else get_family(self.prefix)
 
+    @property
+    def zebra_family(self):
+        if self.family == 'ipv4':
+            return 'ip'
+        return 'ipv6'
+
 
 class AccessListEntry(Entry):
     """A zebra access-list entry"""
@@ -200,6 +206,11 @@ class ZebraList(ABC):
     def Entry(self):
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def zebra_family(self):
+        raise NotImplementedError
+
     def __init__(self, family, entries: Sequence[Union['ZebraList.Entry',
                                                        str, IPv4Network,
                                                        IPv6Network]] = (), name=None):
@@ -228,6 +239,12 @@ class ZebraList(ABC):
 
 class PrefixList(ZebraList):
     @property
+    def zebra_family(self):
+        if self.family == 'ipv4':
+            return 'ip'
+        return 'ipv6'
+
+    @property
     def prefix_name(self):
         return 'pfxl'
 
@@ -239,6 +256,12 @@ class PrefixList(ZebraList):
 class AccessList(ZebraList):
     """A zebra access-list class. It contains a set of AccessListEntry,
     which describes all prefix belonging or not to this ACL"""
+
+    @property
+    def zebra_family(self):
+        if self.family == 'ipv4':
+            return ''
+        return 'ipv6 '
 
     @property
     def prefix_name(self):
@@ -268,6 +291,17 @@ class RouteMapMatchCond:
         self.condition = condition
         self.cond_type = cond_type
         self.family = family
+
+    @property
+    def zebra_family(self):
+        if self.family == 'ipv4':
+            return 'ip'
+        elif self.family == 'ipv6':
+            return 'ipv6'
+        elif self.family == 'community':
+            return 'community'
+
+        raise ValueError('Unsupported family; %s' % self.family)
 
     def __eq__(self, other):
         return self.condition == other.condition \
