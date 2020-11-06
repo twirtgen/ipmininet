@@ -26,7 +26,7 @@ after the network has been built, when calling ``post_build()``.
     from ipmininet.utils import realIntfList
 
 
-    class FailureTopo(IPTopo):
+    class MyTopology(IPTopo):
         """
 
             +-----+                 +------+
@@ -73,3 +73,35 @@ We use the ``post_build()`` function to use methods related to the simulation
 of a link failure. However, since those methods are belonging to the ``IPNet``
 class, they can be used outside ``post_build()`` as long as the ``IPNet``
 object can be accessed.
+
+
+.. doctest related functions
+
+
+.. testsetup:: *
+
+    from ipmininet.clean import cleanup
+    cleanup(level='warning')
+
+.. testcode:: *
+    :hide:
+
+    try:
+        MyTopology
+    except NameError:
+        MyTopology = None
+
+    if MyTopology is not None:
+        from ipmininet.ipnet import IPNet
+        net = IPNet(topo=MyTopology())
+        net.start()
+
+.. testcleanup:: *
+
+    try:
+        net
+    except NameError:
+        net = None
+
+    if net is not None:
+        net.stop()
