@@ -1,6 +1,5 @@
 """This modules defines a host class,
    with a modular config system."""
-from ipaddress import ip_address
 from typing import Type, Union, Tuple, Dict, Optional
 
 import mininet.node as _m
@@ -20,7 +19,8 @@ class IPHost(IPNode):
                  *args, **kwargs):
         super().__init__(name, config=config, *args, **kwargs)
 
-    def setDefaultRoute(self, intf: Optional[Union[IPIntf, str]] = None, v6=False):
+    def setDefaultRoute(self, intf: Optional[Union[IPIntf, str]] = None,
+                        v6=False):
         """Set the default routes to go through the intfs.
            intf: Intf or {dev <intfname> via <gw-ip> ...}"""
         if intf is None:
@@ -32,14 +32,17 @@ class IPHost(IPNode):
             # Recover interface
             option_list = params.split(" ")
             for i, opt in enumerate(option_list):
-                if "dev" == opt:
+                if opt == "dev":
                     intf = self.intf(option_list[i+1])
         else:
             params = "dev %s" % intf
 
-        # Set command to be re-executed if interface is downed and then brought back up
+        # Set command to be re-executed if interface is downed
+        # and then brought back up
         version = "6" if v6 else "4"
-        cmd = "ip -{ver} route del default; ip -{ver} route add default {params}".format(ver=version, params=params)
+        cmd = "ip -{ver} route del default;" \
+              " ip -{ver} route add default {params}".format(ver=version,
+                                                             params=params)
         if isinstance(intf, IPIntf):
             intf.restore_cmds.append(cmd)
         self.cmd(cmd)
@@ -53,13 +56,18 @@ class IPHost(IPNode):
         for itf in realIntfList(self):
             for r in itf.broadcast_domain.routers:
                 if self.use_v4 and self.use_v4 and len(r.addresses[4]) > 0:
-                    self.setDefaultRoute("dev {} via {}".format(itf.name, r.ip), v6=False)
+                    self.setDefaultRoute("dev {} via {}".format(itf.name,
+                                                                r.ip),
+                                         v6=False)
                     found = True
-                if (self.use_v6 and self.use_v6 and len(r.addresses[6]) > 0 and len(r.ra_prefixes)) == 0:
+                if self.use_v6 and self.use_v6 and len(r.addresses[6]) > 0 \
+                        and len(r.ra_prefixes) == 0:
                     # We define a default route only if router
                     # advertisements are not activated. If we call the same
                     # function, the route created above might be deleted
-                    self.setDefaultRoute("dev {} via {}".format(itf.name, r.ip6), v6=True)
+                    self.setDefaultRoute("dev {} via {}".format(itf.name,
+                                                                r.ip6),
+                                         v6=True)
                     found = True
                 break
             if found:

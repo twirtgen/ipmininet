@@ -115,8 +115,8 @@ def assert_node_not_connected(src: IPNode, dst: IPNode, v6=False, timeout=0.5):
           % (" -6" if v6 else "", int(timeout * 1000), dst_ip)
     out = src.cmd(cmd.split(" "))
 
-    assert "0 hosts up" in out, "Node {} is connected to node {} over {}".format(src.name, dst.name,
-                                                                                 "IPv4" if not v6 else "IPv6")
+    assert "0 hosts up" in out, "Node {} is connected to node {} over {}" \
+        .format(src.name, dst.name, "IPv4" if not v6 else "IPv6")
 
 
 def assert_connectivity(net: IPNet, v6=False, attempts=300,

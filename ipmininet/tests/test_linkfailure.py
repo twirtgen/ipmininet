@@ -106,13 +106,14 @@ def test_randomFailureOnTargetedLink():
         assert_connectivity(net, v6=False)
         assert_connectivity(net, v6=True)
 
-        interface_down = net.randomFailure(1, weak_links=[net["r1"].intf("r1-eth0").link])
+        itfs = net.randomFailure(1,
+                                 weak_links=[net["r1"].intf("r1-eth0").link])
 
         # Check a failure between both hosts
         assert_node_not_connected(src=net["h1"], dst=net["h2"], v6=False)
         assert_node_not_connected(src=net["h1"], dst=net["h2"], v6=True)
 
-        net.restoreIntfs(interface_down)
+        net.restoreIntfs(itfs)
 
         # Check link restoration
         assert_connectivity(net, v6=False)

@@ -225,14 +225,16 @@ class IPIntf(_m.TCIntf):
         return self.ip, self.mac
 
     def down(self, backup=True):
-        """Down the interface and, if 'backup' is true, save the current allocated IPs"""
+        """Down the interface and, if 'backup' is true,
+           save the current allocated IPs"""
         if backup:
             self.backup_addresses = deepcopy(self.addresses)
 
         self.node.cmd("ip link set dev " + self.name + " down")
 
     def up(self, restore=True):
-        """Up the interface and, if 'restore' is true, restore the saved addresses"""
+        """Up the interface and, if 'restore' is true,
+           restore the saved addresses"""
         self.isUp(setUp=True)
         if restore:
             self.setIP(self.backup_addresses[4] + self.backup_addresses[6])

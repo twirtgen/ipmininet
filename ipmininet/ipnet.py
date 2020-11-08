@@ -29,6 +29,7 @@ PING6_CMD = 'ping6' if has_cmd('ping6') else 'ping -6'
 
 class IPNet(Mininet):
     """IPNet: An IP-aware Mininet"""
+
     def __init__(self,
                  router: Type[Router] = Router,
                  config: Type[RouterConfig] = BasicRouterConfig,
@@ -531,10 +532,12 @@ class IPNet(Mininet):
            return: ploss packet loss percentage"""
         return self.pingPair(use_v4=False)
 
-    def runFailurePlan(self, failure_plan: List[Tuple[str, str]]) -> List[IPIntf]:
+    def runFailurePlan(self, failure_plan: List[Tuple[str, str]]) \
+            -> List[IPIntf]:
         """Run a failure plan
 
-            :param: A list of pairs of node names: links connecting these two links will be downed
+            :param: A list of pairs of node names: links connecting these two
+                    links will be downed
             :return: A list of interfaces that were downed
         """
         log.output("** Starting failure plan\n")
@@ -552,7 +555,8 @@ class IPNet(Mininet):
             log.output("** Interface " + str(interface) + " down\n")
         return interfaces_down
 
-    def restoreIntfs(self, interfaces: List[IPIntf]):
+    @staticmethod
+    def restoreIntfs(interfaces: List[IPIntf]):
         """Restore interfaces
 
             :param interfaces: the list of interfaces to restore
@@ -562,27 +566,30 @@ class IPNet(Mininet):
             interface.up(restore=True)
             log.output("** interfaces " + str(interface) + " up\n")
 
-    def randomFailure(self, n: int, weak_links: Optional[List[IPLink]] = None) -> List[IPIntf]:
+    def randomFailure(self, n: int, weak_links: Optional[List[IPLink]] = None)\
+            -> List[IPIntf]:
         """Randomly down 'n' link
 
             :param n: the number of link to be downed
-            :param weak_links: the list of links that can be downed; if set to None, every network link can be downed
+            :param weak_links: the list of links that can be downed; if set
+                               to None, every network link can be downed
             :return: the list of interfaces which were downed
         """
         all_links = weak_links if weak_links is not None else self.links
         number_of_links = len(all_links)
         if n > number_of_links:
-            log.error("More link down requested than number of link that can be downed\n")
+            log.error("More link down requested than number of link"
+                      " that can be downed\n")
             return []
-        else:
-            downed_interfaces = []
-            down_links = random.sample(all_links, k=n)
-            for link in down_links:
-                for intf in [link.intf1, link.intf2]:
-                    intf.down(backup=True)
-                    log.output("** Interface " + str(intf) + " down\n")
-                    downed_interfaces.append(intf)
-            return downed_interfaces 
+
+        downed_interfaces = []
+        down_links = random.sample(all_links, k=n)
+        for link in down_links:
+            for intf in [link.intf1, link.intf2]:
+                intf.down(backup=True)
+                log.output("** Interface " + str(intf) + " down\n")
+                downed_interfaces.append(intf)
+        return downed_interfaces
 
 
 class BroadcastDomain:

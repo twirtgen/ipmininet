@@ -10,7 +10,7 @@ class FailureTopo(IPTopo):
         +---+-+                 +---+--+
             |        +-----+        |
             +--------| r3  |--------+
-                     +--+--+        
+                     +--+--+
                         |
                      +--+--+
                      | r4  |
@@ -35,7 +35,8 @@ class FailureTopo(IPTopo):
         interfaces_down = net.randomFailure(2)
         net.restoreIntfs(interfaces_down)
 
-        # Run a 1 link Failure Random based on a given list of link and then, restore the link
+        # Run a 1 link Failure Random based on a given list of link
+        # and then, restore the link
         links = list(map(lambda x: x.link, realIntfList(net["r1"])))
         interfaces_down = net.randomFailure(1, weak_links=links)
         net.restoreIntfs(interfaces_down)

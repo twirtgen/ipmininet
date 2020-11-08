@@ -84,7 +84,8 @@ class IPCLI(CLI):
     def do_link(self, line: str):
         """ down/up the link between 2 specified routers, can specify multiple
             multiple link
-            :param line: the router name between which the link as to be downed/up: r1 r2, r3 r4 [down/up]
+            :param line: the router name between which the link as to be
+                         downed/up: r1 r2, r3 r4 [down/up]
         """
         all_args = line.split(',')
         last_args = all_args[-1].split()
