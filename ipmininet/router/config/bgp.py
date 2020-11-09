@@ -143,8 +143,8 @@ def ebgp_session(topo: 'IPTopo', a: 'RouterDescription', b: 'RouterDescription',
         ip6_pfxl = PrefixList(name="hello-world-v6", family='ipv6', entries=(PrefixListEntry('::/0', le=128),))
 
         a.get_config(BGP) \
-            .filter('import-all', policy=PERMIT, from_peer=a, to_peer=b) \
-            .filter('export-all', policy=PERMIT, from_peer=b, to_peer=a)
+            .filter('import-all', policy=PERMIT, from_peer=a, to_peer=b, matching=(ip4_pfxl, ip6_pfxl)) \
+            .filter('export-all', policy=PERMIT, from_peer=b, to_peer=a, matching=(ip4_pfxl, ip6_pfxl))
         b.get_config(BGP) \
             .filter('import-all2', policy=PERMIT, from_peer=a, to_peer=b, matching=(ip4_pfxl, ip6_pfxl)) \
             .filter('export-all2', policy=PERMIT, from_peer=b, to_peer=a, matching=(ip4_pfxl, ip6_pfxl))
@@ -521,6 +521,18 @@ def AF_INET6(*args, **kwargs):
 
 
 class Peer:
+
+    class PQNode:
+        def __init__(self, key, extra_val):
+            self.key = key
+            self.value = extra_val
+
+        def __lt__(self, other):
+            return self.key < other.key
+
+        def __str__(self):
+            return str("{} : {}".format(self.key, self.value))
+
     """A BGP peer"""
 
     def __init__(self, base: 'Router', node: str, v6=False):
@@ -552,12 +564,16 @@ class Peer:
         a peering"""
         visited = set()  # type: Set[IPIntf]
         to_visit = {i.name: i for i in realIntfList(base)}
-        prio_queue: List[Tuple[int, str, IPIntf]] = [(0, i, to_visit[i]) for i in to_visit.keys()]
+        prio_queue: List['Peer.PQNode'] = [Peer.PQNode((0, i), to_visit[i]) for i in to_visit.keys()]
         heapq.heapify(prio_queue)
         # Explore all interfaces in base ASN recursively, until we find one
         # connected to the peer
         while to_visit:
-            path_cost, i, my_interface = heapq.heappop(prio_queue)
+            node = heapq.heappop(prio_queue)
+            path_cost = node.key[0]
+            i = node.key[1]
+            my_interface = node.value
+
             if i in visited:
                 continue
             i = to_visit.pop(i)
@@ -572,5 +588,5 @@ class Peer:
                 if n.node.asn == base.asn or not n.node.asn:
                     for i in realIntfList(n.node):
                         to_visit[i.name] = i
-                        heapq.heappush(prio_queue, (path_cost + i.igp_metric, i.name, my_interface))
+                        heapq.heappush(prio_queue, Peer.PQNode((path_cost + i.igp_metric, i.name), my_interface))
         return None, None, None
