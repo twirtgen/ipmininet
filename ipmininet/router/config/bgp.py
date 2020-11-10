@@ -521,8 +521,10 @@ def AF_INET6(*args, **kwargs):
 
 
 class Peer:
+    """A BGP peer"""
 
     class PQNode:
+        """Class representing an element of the priority queue used in _find_peer_address"""
         def __init__(self, key, extra_val):
             self.key = key
             self.value = extra_val
@@ -532,8 +534,6 @@ class Peer:
 
         def __str__(self):
             return str("{} : {}".format(self.key, self.value))
-
-    """A BGP peer"""
 
     def __init__(self, base: 'Router', node: str, v6=False):
         """:param base: The base router that has this peer
@@ -560,8 +560,20 @@ class Peer:
     @staticmethod
     def _find_peer_address(base: 'Router', peer: str, v6=False) \
             -> Tuple[Optional[str], Optional['Router'], Optional[str]]:
-        """Return the IP address that base should try to contact to establish
-        a peering"""
+        """
+        Finds the IP address of the peer from the base router to
+        typically configure the BGP session between the two routers.
+
+        :param base: The router from which the peer's address must be found
+        :param peer: the name of the node for which we are looking for the IP address
+        :param v6: if set to True, the function seeks the IPv6 address.
+                   Otherwise, if set to False, it looks for the IPv4 address
+        :return: a 3-Tuple <peer IP, peer Router object, local base IP>
+                 peer IP: the IP address set on the peer interface
+                 peer Router object: the node object related to the peer
+                 local base IP: the local IP address used on base router
+                                to establish the connection with the peer
+        """
         visited = set()  # type: Set[IPIntf]
         to_visit = {i.name: i for i in realIntfList(base)}
         prio_queue: List['Peer.PQNode'] = [Peer.PQNode((0, i), to_visit[i]) for i in to_visit.keys()]

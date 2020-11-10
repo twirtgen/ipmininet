@@ -280,6 +280,8 @@ class ExaBGPDaemon(AbstractBGP):
 
     def set_defaults(self, defaults):
         """
+        Modifies the default configuration of this ExaBGP daemon
+
         :param env: a dictionary of all the environment variables that configure ExaBGP.
                     Type "exabgp --help" to take a look on every environment variable.
                     env.tcp.delay is set by default to 2 min as FRRouting BGPD daemon
@@ -306,7 +308,6 @@ class ExaBGPDaemon(AbstractBGP):
         :param passive: Tells to ExaBGP to not send active BGP Open messages. The daemon
                         waits until the remote peer sends first the Open message to start
                         the BGP session. Its default value is set to True.
-        :return: The default configuration of this ExaBGP daemon
         """
         defaults.base_env = ConfigDict(
             daemon=ConfigDict(

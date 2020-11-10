@@ -210,7 +210,7 @@ The following code shows how to use the ExaBGP daemon to add custom routes :
     }
 
 
-    class ExaBGPTopo(IPTopo):
+    class MyTopology(IPTopo):
         def build(self, *args, **kwargs):
             """
               +---+---+---+     +---+---+---+
