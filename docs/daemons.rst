@@ -99,9 +99,10 @@ The following code shows how to use all these abstractions:
             # Inter-AS links
             self.addLinks((as1r1, as2r1), (as2r3, as3r1))
 
-            # Add an access list to 'any'
+            # Add an access list to 'any' for both ipv4 and ipv6 AFI
             # This can be an IP prefix or address instead
-            all_al = AccessList('all', ('any',))
+            all_al4 = AccessList(family='ipv4', name='allv4', entries=('any',))
+            all_al6 = AccessList(family='ipv6', name='allv6', entries=('any',))
 
             # Add a community list to as2r1
             loc_pref = CommunityList('loc-pref', community='2:80')
@@ -109,11 +110,11 @@ The following code shows how to use all these abstractions:
             # as2r1 set the local pref of all the route coming from as1r1 and matching the community list community to 80
             as2r1.get_config(BGP).set_local_pref(80, from_peer=as1r1, matching=(loc_pref,))
 
-            # as1r1 set the community of all the route sent to as2r1 and matching the access list all_al to 2:80
-            as1r1.get_config(BGP).set_community('2:80', to_peer=as2r1, matching=(all_al,))
+            # as1r1 set the community of all the route sent to as2r1 and matching the access lists all_al{4,6} to 2:80
+            as1r1.get_config(BGP).set_community('2:80', to_peer=as2r1, matching=(all_al4, all_al6))
 
-            #  as3r1 set the med of all the route coming from as2r3 and matching the access list all_al to 50
-            as3r1.get_config(BGP).set_med(50, to_peer=as2r3, matching=(all_al,))
+            #  as3r1 set the med of all the route coming from as2r3 and matching the access lists all_al{4,6} to 50
+            as3r1.get_config(BGP).set_med(50, to_peer=as2r3, matching=(all_al4, all_al6))
 
             # AS1 is composed of 3 routers that have a full-mesh set of iBGP peering between them
             self.addiBGPFullMesh(1, routers=[as1r1, as1r2, as1r3])
@@ -168,10 +169,8 @@ To add custom routes, we defined several helper classes that help to represent a
 The following code shows how to use the ExaBGP daemon to add custom routes :
 
 .. testcode:: exabgp
-    from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
 
-    from ipmininet.clean import cleanup
-    from ipmininet.ipnet import IPNet
+    from ipaddress import ip_network
     from ipmininet.iptopo import IPTopo
     from ipmininet.router.config import RouterConfig, ExaBGPDaemon, AF_INET, AF_INET6, \
         ebgp_session, BGPRoute, BGPAttribute, ExaList, BGP
