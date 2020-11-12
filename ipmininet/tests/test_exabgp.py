@@ -3,13 +3,15 @@ import os
 import re
 import time
 from contextlib import closing
-from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
+from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address, IPv4Interface, IPv6Interface
+from typing import Tuple, Sequence, Dict, Union
+
+import pytest
 
 from ipmininet.clean import cleanup
+from ipmininet.examples.exabgp_prefix_injector import ExaBGPTopoInjectPrefixes
 from ipmininet.ipnet import IPNet
-from ipmininet.iptopo import IPTopo
-from ipmininet.router.config import RouterConfig, ExaBGPDaemon, AF_INET, AF_INET6, \
-    ebgp_session, BGPRoute, BGPAttribute, ExaList, BGP
+from ipmininet.router.config import BGPRoute, BGPAttribute, ExaList
 from ipmininet.tests import require_root
 
 exa_routes = {
@@ -45,136 +47,79 @@ exa_routes = {
     ]
 }
 
-
-class ExaBGPTopo(IPTopo):
-    def build(self, *args, **kwargs):
-        """
-          +---+---+---+     +---+---+---+
-          |           |     |           |
-          |    as1    |     |    as2    |
-          |   ExaBGP  +-----+  FRR BGP  |
-          |           |     |           |
-          +---+---+---+     +---+---+---+
-        """
-
-        af4 = AF_INET(routes=exa_routes['ipv4'])
-        af6 = AF_INET6(routes=exa_routes['ipv6'])
-
-        # Add all routers
-        as1 = self.addRouter("as1", config=RouterConfig, use_v4=True, use_v6=True)
-        as1.addDaemon(ExaBGPDaemon, address_families=(af4, af6))
-
-        as2 = self.bgp('as2')
-
-        # Add links
-        las12 = self.addLink(as1, as2)
-        las12[as1].addParams(ip=("10.1.0.1/24", "fd00:12::1/64",))
-        las12[as2].addParams(ip=("10.1.0.2/24", "fd00:12::2/64",))
-
-        # Set AS-ownerships
-        self.addAS(1, (as1,))
-        self.addAS(2, (as2,))
-        # Add eBGP peering
-        ebgp_session(self, as1, as2)
-
-        super().build(*args, **kwargs)
-
-    def bgp(self, name):
-        r = self.addRouter(name, use_v4=True, use_v6=True)
-        r.addDaemon(BGP, debug=('updates', 'neighbor-events', 'zebra'), address_families=(
-            AF_INET(redistribute=('connected',)),
-            AF_INET6(redistribute=('connected',))))
-        return r
+get_rib = "#!/usr/bin/env sh \n" \
+          "nc {host} {port} <<EOF\n" \
+          "zebra\n" \
+          "show bgp {family} json\n" \
+          "exit\n" \
+          "EOF\n"
 
 
-@require_root
-def test_correct_rib_as2():
-    get_rib = "#!/usr/bin/env sh \n" \
-              "nc {host} {port} <<EOF\n" \
-              "zebra\n" \
-              "show bgp {family} json\n" \
-              "exit\n" \
-              "EOF\n"
-
-    to_unlink = list()
-
+def prepare_rib_lookup_script(rib_script) -> Sequence[Tuple[str, str]]:
+    scripts = list()
     for family in ('ipv4', 'ipv6'):
         super_path = "/tmp/_get_%s_rib.sh" % family
-        to_unlink.append((super_path, family))
+        scripts.append((super_path, family))
         with closing(open(super_path, 'w')) as f:
-            f.write(get_rib.format(host="localhost", port=2605, family=family))
+            f.write(rib_script.format(host="localhost", port=2605, family=family))
 
-    try:
-        net = IPNet(topo=ExaBGPTopo())
-        net.start()
-
-        # Must wait at least 120s as ExaBGP waits 2 minutes at most before sending its entire RIB
-        time.sleep(130)
-        frr_bgp_node = net['as2']
-
-        for command, family in to_unlink:
-            my_output = frr_bgp_node.popen("sh %s" % command)
-            my_output.wait()
-            out, err = my_output.communicate()
-
-            output = out.decode(errors="ignore")
-
-            p = re.compile(r"(?s)as2> show bgp {family} json(?P<rib>.*)as2> exit".format(family=family))
-            m = p.search(output)
-
-            assert m is not None, "Unable to find the RIB"
-
-            my_rib = m.group("rib")
-            parsed_rib = json.loads(my_rib)
-            rib_routes = parsed_rib['routes']
-
-            print(rib_routes)
-
-            for our_route in exa_routes[family]:
-
-                str_ipnet = str(our_route.IPNetwork)
-                rib_route = rib_routes[str_ipnet][0]  # take the first one as ExaBGP sends only one route per prefix
-
-                assert str_ipnet in rib_routes, \
-                    "{route} not in FRRouting BGP RIB".format(route=our_route.IPNetwork)
-
-                assert rib_route["origin"].lower() == our_route['origin'].val, \
-                    "Bad origin for route {route}. Expected {origin_expect}. Received {origin_real}" \
-                        .format(route=our_route.IPNetwork, origin_expect=our_route['origin'].val,
-                                origin_real=rib_route["origin"])
-
-                check_as_path(rib_route["path"], our_route['as-path'].val)
-
-                assert check_next_hop(rib_route['nexthops']) is True, \
-                    "Bad next hop"
-
-                if 'metric' in rib_route:
-                    assert rib_route['metric'] == our_route['med'].val, \
-                        "Bad MED. Expected {expected}. Received {received}" \
-                            .format(expected=our_route['med'].val, received=rib_route['metric'])
-
-        net.stop()
-    finally:
-        for file, family in to_unlink:
-            os.unlink(file)
-
-        cleanup()
+    return scripts
 
 
-def check_next_hop(next_hops: dict):
-    our_next_hop = {
-        'ipv4': ip_address("10.1.0.1"),
-        'ipv6': ip_address("fd00:12::1")
-    }
+def check_correct_rib(node, rib_scripts, topo):
+    expected_rib_routes = topo.routes
+    for command, family in rib_scripts:
+        my_output = node.popen("sh %s" % command)
+        my_output.wait()
+        out, err = my_output.communicate()
 
+        output = out.decode(errors="ignore")
+
+        p = re.compile(r"(?s)as2> show bgp {family} json(?P<rib>.*)as2> exit".format(family=family))
+        m = p.search(output)
+
+        assert m is not None, "Unable to find the RIB"
+
+        my_rib = m.group("rib")
+        parsed_rib = json.loads(my_rib)
+        rib_routes = parsed_rib['routes']
+
+        print(expected_rib_routes)
+        print(rib_routes)
+
+        for our_route in expected_rib_routes[family]:
+
+            str_ipnet = str(our_route.IPNetwork)
+            rib_route = rib_routes[str_ipnet][0]  # take the first one as ExaBGP sends only one route per prefix
+
+            assert str_ipnet in rib_routes, \
+                "{route} not in FRRouting BGP RIB".format(route=our_route.IPNetwork)
+
+            assert rib_route["origin"].lower() == our_route['origin'].val, \
+                "Bad origin for route {route}. Expected {origin_expect}. Received {origin_real}" \
+                .format(route=our_route.IPNetwork, origin_expect=our_route['origin'].val,
+                        origin_real=rib_route["origin"])
+
+            check_as_path(rib_route["path"], our_route['as-path'].val)
+
+            assert check_next_hop(rib_route['nexthops'], topo.addr['as1']) is True, \
+                "Bad next hop"
+
+            if 'metric' in rib_route:
+                assert rib_route['metric'] == our_route['med'].val, \
+                    "Bad MED. Expected {expected}. Received {received}" \
+                    .format(expected=our_route['med'].val, received=rib_route['metric'])
+
+
+def check_next_hop(next_hops: dict, expected_nh: Dict[str, Union['IPv4Interface', 'IPv6Interface']]):
     for next_hop in next_hops:
         rib_next_hop = ip_address(next_hop['ip'])
 
         if isinstance(rib_next_hop, IPv4Address):
-            if rib_next_hop == our_next_hop['ipv4']:
+            if rib_next_hop == expected_nh['ipv4'].ip:
                 return True
         elif isinstance(rib_next_hop, IPv6Address):
-            if rib_next_hop == our_next_hop['ipv6']:
+            if rib_next_hop == expected_nh['ipv6'].ip:
                 return True
 
     return False
@@ -192,3 +137,29 @@ def check_as_path(as_path_rib: str, as_path_us: ExaList):
     for idx, asn_received, asn_expected in zip(range(len(as_rib)), as_rib, as_rib_us):
         assert asn_received == asn_received, "Bad ASN at index {index}. Expected AS{expected}. Received AS{received}". \
             format(index=idx, expected=asn_expected, received=asn_received)
+
+
+@require_root
+@pytest.mark.parametrize('topo_test,frr_bgp_node', [
+    (ExaBGPTopoInjectPrefixes(routes=exa_routes), 'as2'),  # default IPs, custom routes,
+    (ExaBGPTopoInjectPrefixes(), 'as2'),  # default IPs, random routes
+    (ExaBGPTopoInjectPrefixes(addr={
+        'as1': {'ipv4': '8.8.8.1/24', 'ipv6': '2001:4860:4860::1/64'},
+        'as2': {'ipv4': '8.8.8.2/24', 'ipv6': '2001:4860:4860::2/64'}}), 'as2'),  # custom IP addr, random routes
+    (ExaBGPTopoInjectPrefixes(routes=exa_routes, addr={
+        'as1': {'ipv4': '8.8.8.1/24', 'ipv6': '2001:4860:4860::1/64'},
+        'as2': {'ipv4': '8.8.8.2/24', 'ipv6': '2001:4860:4860::2/64'}}), 'as2'),  # custom IP addr, custom routes
+])
+def test_example_exabgp(topo_test, frr_bgp_node):
+    rib_scripts = prepare_rib_lookup_script(get_rib)
+    net = IPNet(topo=topo_test)
+    try:
+        net.start()
+        # Must wait 130s since ExaBGP sends routes at most 120s after the startup
+        time.sleep(130)
+        check_correct_rib(net[frr_bgp_node], rib_scripts, topo_test)
+    finally:
+        net.stop()
+        for file, _ in rib_scripts:
+            os.unlink(file)
+        cleanup()

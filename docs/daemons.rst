@@ -142,7 +142,7 @@ install routes to the FIB of the node. For example ExaBGP can be used to simulat
 transit network router that inject many routes to another AS. We can then check the routing
 decision of the latter AS for the routes send from ExaBGP.
 
-As for BGP, ExaBGP can be added as a daemon of the node with ``router.addDaemon(BGP, **kwargs)``.
+As for BGP, ExaBGP can be added as a daemon of the node with ``router.addDaemon(ExaBGPDaemon, **kwargs)``.
 The default ExaBGP parameters that are set for the daemon are :
 
 .. automethod:: ipmininet.router.config.exabgp.ExaBGPDaemon.set_defaults

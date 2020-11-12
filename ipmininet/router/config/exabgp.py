@@ -217,6 +217,9 @@ class BGPRoute(Representable):
 
         return route
 
+    def __repr__(self):
+        return str(self)
+
     def __getitem__(self, item):
         if item in ('network', 'IPnetwork'):
             return self.IPNetwork
