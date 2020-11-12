@@ -535,6 +535,9 @@ class Peer:
         def __str__(self):
             return str("{} : {}".format(self.key, self.value))
 
+        def __repr__(self):
+            return str(self)
+
     def __init__(self, base: 'Router', node: str, v6=False):
         """:param base: The base router that has this peer
         :param node: The actual peer"""
@@ -574,7 +577,7 @@ class Peer:
                  local base IP: the local IP address used on base router
                                 to establish the connection with the peer
         """
-        visited = set()  # type: Set[IPIntf]
+        visited = set()  # type: Set[str]
         to_visit = {i.name: i for i in realIntfList(base)}
         prio_queue: List['Peer.PQNode'] = [Peer.PQNode((0, i), to_visit[i]) for i in to_visit.keys()]
         heapq.heapify(prio_queue)
@@ -583,13 +586,13 @@ class Peer:
         while to_visit:
             node = heapq.heappop(prio_queue)
             path_cost = node.key[0]
-            i = node.key[1]
+            i = j = node.key[1]
             my_interface = node.value
 
-            if i in visited:
+            if j in visited:
                 continue
             i = to_visit.pop(i)
-            visited.add(i)
+            visited.add(j)  # putting the string representation of the interface
             for n in i.broadcast_domain.routers:
                 if n.node.name == peer:
                     if not v6:
