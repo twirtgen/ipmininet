@@ -586,13 +586,12 @@ class Peer:
         while to_visit:
             node = heapq.heappop(prio_queue)
             path_cost = node.key[0]
-            i = j = node.key[1]
+            i = node.key[1]
             my_interface = node.value
-
-            if j in visited:
+            if i in visited:
                 continue
+            visited.add(i)  # putting the string representation of the interface
             i = to_visit.pop(i)
-            visited.add(j)  # putting the string representation of the interface
             for n in i.broadcast_domain.routers:
                 if n.node.name == peer:
                     if not v6:
