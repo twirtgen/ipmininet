@@ -13,7 +13,9 @@ __MAX_UINT32_ = 4294967295
 __MAX_UINT16_ = 65535
 
 _1_0_0_0 = 16777216  # int repr of IPv4 address 1.0.0.0
+_233_255_255_255 = 3758096383
 _2001 = 42540488161975842760550356425300246528  # int repr of IPv6 address 2001::
+_8000 = 170141183460469231731687303715884105728
 
 
 def rnd_list(max_len: int, strict=False, bound_lo: int = 1, bound_hi: int = __MAX_UINT16_) -> List[int]:
@@ -83,13 +85,13 @@ def gen_ip_prefix(family: str):
             'pfx_lo': 8,
             'pfx_hi': 32,
             'start_ip': _1_0_0_0,  # 1.0.0.0
-            'end_ip': __MAX_UINT32_  # 255.255.255.255
+            'end_ip': _233_255_255_255  # 223.255.255.255 (avoid class D and class E addresses)
         },
         'ipv6': {
             'pfx_lo': 16,
             'pfx_hi': 128,
             'start_ip': _2001,  # 2001::
-            'end_ip': __MAX_UINT128_  # ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+            'end_ip': _8000 - 1  # 7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
         }
     }
 
