@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence, Union, List, Any
+from typing import Optional, Sequence, Union, List
 
-from .bgp import AbstractBGP, AF_INET, AF_INET6, BGP_DEFAULT_PORT, Peer
+from .bgp import AbstractBGP, AF_INET, AF_INET6, BGP_DEFAULT_PORT
 from .utils import ConfigDict
 
 
@@ -49,6 +49,7 @@ class HexRepresentable(Representable):
             my_new_attr = BGPAttribute(42, LongAttr(2658), BGPAttributesFlags(1,1,0,0))
 
     """
+
     @abstractmethod
     def hex_repr(self) -> str:
         """
@@ -68,6 +69,7 @@ class ExaList(HexRepresentable):
     already defined and known from ExaBGP. If the list is used for an hexadecimal
     attribute, it raises a ValueError
     """
+
     def hex_repr(self) -> str:
         raise ValueError("Must not be used for an Hexadecimal representation")
 

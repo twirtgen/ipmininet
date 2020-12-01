@@ -2,14 +2,9 @@
 import heapq
 import itertools
 from abc import ABC
-from typing import Sequence, TYPE_CHECKING, Optional, Union, Tuple, List, Set
-
-import itertools
-from abc import ABC
 from ipaddress import ip_network, ip_address, IPv4Network, IPv6Network
 from typing import Sequence, TYPE_CHECKING, Optional, Union, Tuple, List, Set
 
-from ipmininet.link import IPIntf
 from ipmininet.overlay import Overlay
 from ipmininet.utils import realIntfList
 from .base import RouterDaemon
@@ -68,6 +63,7 @@ def bgp_fullmesh(topo, routers: Sequence[str]):
 
     :param topo: The current topology
     :param routers: The set of routers peering within each other"""
+
     def _set_peering(x):
         bgp_peering(topo, x[0], x[1])
 
@@ -103,43 +99,43 @@ def ebgp_session(topo: 'IPTopo', a: 'RouterDescription', b: 'RouterDescription',
 
         if link_type == SHARE:
             # Set the community and local pref for the import policy
-            a.get_config(BGP)\
+            a.get_config(BGP) \
                 .set_community(1, from_peer=b, matching=(all_al_v4, all_al_v6)) \
                 .set_local_pref(150, from_peer=b, matching=(all_al_v4, all_al_v6,))
-            b.get_config(BGP)\
-                .set_community(1, from_peer=a, matching=(all_al_v4, all_al_v6,))\
+            b.get_config(BGP) \
+                .set_community(1, from_peer=a, matching=(all_al_v4, all_al_v6,)) \
                 .set_local_pref(150, from_peer=a, matching=(all_al_v4, all_al_v6,))
 
             # Create route maps to filter exported route
-            a.get_config(BGP)\
+            a.get_config(BGP) \
                 .deny('export-to-peer-' + b, to_peer=b, matching=(up_link,),
-                      order=10)\
+                      order=10) \
                 .deny('export-to-peer-' + b, to_peer=b, matching=(peers_link,),
-                      order=15)\
+                      order=15) \
                 .permit('export-to-peer-' + b, to_peer=b, order=20)
 
-            b.get_config(BGP)\
+            b.get_config(BGP) \
                 .deny('export-to-peer-' + a, to_peer=a, matching=(up_link,),
-                      order=10)\
+                      order=10) \
                 .deny('export-to-peer-' + a, to_peer=a, matching=(peers_link,),
-                      order=15)\
+                      order=15) \
                 .permit('export-to-peer-' + a, to_peer=a, order=20)
 
         elif link_type == CLIENT_PROVIDER:
             # Set the community and local pref for the import policy
-            a.get_config(BGP)\
+            a.get_config(BGP) \
                 .set_community(3, from_peer=b, matching=(all_al_v4, all_al_v6,)) \
                 .set_local_pref(100, from_peer=b, matching=(all_al_v4, all_al_v6,))
-            b.get_config(BGP)\
-                .set_community(2, from_peer=a, matching=(all_al_v4, all_al_v6,))\
+            b.get_config(BGP) \
+                .set_community(2, from_peer=a, matching=(all_al_v4, all_al_v6,)) \
                 .set_local_pref(200, from_peer=a, matching=(all_al_v4, all_al_v6,))
 
             # Create route maps to filter exported route
-            a.get_config(BGP)\
+            a.get_config(BGP) \
                 .deny('export-to-up-' + b, to_peer=b, matching=(up_link,),
-                      order=10)\
+                      order=10) \
                 .deny('export-to-up-' + b, to_peer=b, matching=(peers_link,),
-                      order=15)\
+                      order=15) \
                 .permit('export-to-up-' + b, to_peer=b, order=20)
 
     else:  # recent version of BGP must define import/export filters for eBGP sessions (RFC 8212)
@@ -529,6 +525,7 @@ class Peer:
 
     class PQNode:
         """Class representing an element of the priority queue used in _find_peer_address"""
+
         def __init__(self, key, extra_val):
             self.key = key
             self.value = extra_val
