@@ -33,4 +33,6 @@ __all__ = ['BasicRouterConfig', 'NodeConfig', 'Zebra', 'OSPF', 'OSPF6',
            'AF_INET', 'AF_INET6', 'BorderRouterConfig', 'Rule', 'Chain',
            'ChainRule', 'NOT', 'PortClause', 'InterfaceClause',
            'AddressClause', 'Filter', 'InputFilter', 'OutputFilter',
-           'TransitFilter', 'Allow', 'Deny']
+           'TransitFilter', 'Allow', 'Deny', 'ExaBGPDaemon',
+           'ExaList', 'BGPRoute', 'BGPAttributeFlags',
+           'BGPAttribute', 'Representable', 'HexRepresentable']
