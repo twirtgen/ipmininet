@@ -366,6 +366,22 @@ def set_rr(topo: 'IPTopo', rr: str, peers: Sequence[str] = ()):
 
 class AbstractBGP(ABC, RouterDaemon):
 
+    @property
+    def afi(self):
+        return [AF_INET(), AF_INET6()]
+
+    def _build_afi(self, af: Optional[List['AddressFamily']]):
+        afis = self.afi
+        if af:
+            for address_family in af:
+                for default_afi in afis:
+                    if address_family.family == default_afi.family:
+                        default_afi.extend(address_family)
+
+        return afis
+
+
+
     @staticmethod
     def _address_families(af: List['AddressFamily'], nei: List['Peer']) \
             -> List['AddressFamily']:
@@ -408,7 +424,8 @@ class BGP(QuaggaDaemon, AbstractBGP):
         cfg.asn = self._node.asn
         cfg.neighbors = self._build_neighbors()
         cfg.address_families = self._address_families(
-            self.options.address_families, cfg.neighbors)
+            self._build_afi(self.options.address_families), cfg.neighbors)
+
         cfg.access_lists = self.build_access_list()
         cfg.community_lists = self.build_community_list()
         cfg.prefix_lists = self.build_prefix_list()
@@ -477,7 +494,6 @@ class BGP(QuaggaDaemon, AbstractBGP):
     def set_defaults(self, defaults):
         """:param debug: the set of debug events that should be logged
         :param address_families: The set of AddressFamily to use"""
-        defaults.address_families = [AF_INET(), AF_INET6()]
         super().set_defaults(defaults)
 
     @classmethod
@@ -496,6 +512,11 @@ class AddressFamily:
         self.redistribute = redistribute
         self.neighbors = []  # type: List[Peer]
         self.routes = routes
+
+    def extend(self, af: 'AddressFamily'):
+        self.neighbors.extend(af.neighbors)
+        self.networks.extend(af.networks)
+        self.routes += af.routes
 
     @property
     def family(self):
