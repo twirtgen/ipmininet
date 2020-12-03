@@ -143,11 +143,11 @@ def ebgp_session(topo: 'IPTopo', a: 'RouterDescription', b: 'RouterDescription',
         ip6_pfxl = PrefixList(name="hello-world-v6", family='ipv6', entries=(PrefixListEntry('::/0', le=128),))
 
         a.get_config(BGP) \
-            .filter('import-all', policy=PERMIT, from_peer=a, to_peer=b, matching=(ip4_pfxl, ip6_pfxl)) \
-            .filter('export-all', policy=PERMIT, from_peer=b, to_peer=a, matching=(ip4_pfxl, ip6_pfxl))
+            .filter('import-all', policy=PERMIT, from_peer=b, matching=(ip4_pfxl, ip6_pfxl)) \
+            .filter('export-all', policy=PERMIT, to_peer=b, matching=(ip4_pfxl, ip6_pfxl))
         b.get_config(BGP) \
-            .filter('import-all2', policy=PERMIT, from_peer=a, to_peer=b, matching=(ip4_pfxl, ip6_pfxl)) \
-            .filter('export-all2', policy=PERMIT, from_peer=b, to_peer=a, matching=(ip4_pfxl, ip6_pfxl))
+            .filter('import-all2', policy=PERMIT, from_peer=a, matching=(ip4_pfxl, ip6_pfxl)) \
+            .filter('export-all2', policy=PERMIT, to_peer=a, matching=(ip4_pfxl, ip6_pfxl))
 
     bgp_peering(topo, a, b)
     topo.linkInfo(a, b)['igp_passive'] = True
