@@ -178,7 +178,7 @@ def install_exabgp(output_dir: str, may_fail=False):
     exabgp_self_executable = os.path.join(output_dir, "exabgp")
     final_link = "/usr/sbin/exabgp"
 
-    sh("git clone {url} -o {src_dir}".format(url=git_url, src_dir=exabgp_src_folder),
+    sh("git clone {url} {src_dir}".format(url=git_url, src_dir=exabgp_src_folder),
        cwd=output_dir, may_fail=may_fail)
 
     sh("git checkout %s" % ExaBGPVersion, cwd=exabgp_path_src_dir, may_fail=may_fail)
