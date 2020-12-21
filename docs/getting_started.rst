@@ -230,7 +230,8 @@ specific:
 
             # 'igp_metric' parameter is set to 5 for all the links while
             # the 'ip' parameter is set only for the link between 'r1' and 'r2'
-            self.addLinks((r1, r2, {'ip': ("2042:12::1/64", "10.12.0.1/24")}),
+            self.addLinks((r1, r2, {'params1': {'ip': ("2042:12::1/64", "10.12.0.1/24")},
+                                    'params2': {'ip': ("2042:12::2/64", "10.12.0.2/24")}}),
                           (s1, r1), (h1, s1), (s2, r2), (h2, s2),
                           (r2, r3), (r3, r4), (r4, r5), igp_metric=5)
 
