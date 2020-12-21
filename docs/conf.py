@@ -48,6 +48,26 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'recommonmark']
 
+doctest_global_setup = '''
+import sys, os
+
+class MockStdIn(object):
+    def __init__(self):
+        r_mod__, w_mod__ = os.pipe()
+        self.new_stdin = os.fdopen(r_mod__, 'r')
+        self.old_stdin = sys.stdin
+        sys.stdin = self.new_stdin
+        self.write_pipe_fd = w_mod__
+    
+    def clean(self):
+        self.new_stdin.close
+        os.close(self.write_pipe_fd)
+        sys.stdin = self.old_stdin
+    
+    def close_on_start_cli(self):
+        os.write(self.write_pipe_fd, "exit\\r\\n".encode())
+'''
+
 # Mock calls to external libraries
 autodoc_mock_imports = ["pytest"]
 

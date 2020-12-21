@@ -64,13 +64,13 @@ class ProcessHelper:
             try:
                 p.terminate()
             except OSError:
-                pass  # Process is already dead
+                continue  # Process is already dead
 
             try:
                 # we need to wait for the termination of the current
                 # process so that the kernel can remove it from the
                 # process table
-                p.wait(timeout=1)
+                p.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 # if the process has not terminated yet,
                 # we send a SIGKILL as ultimate resort.

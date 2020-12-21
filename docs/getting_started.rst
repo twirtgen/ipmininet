@@ -122,12 +122,8 @@ As for Mininet, IPMininet networks need root access to be executed.
 .. testcode:: network run
     :hide:
 
-    import sys, os
-
-    r, w = os.pipe()
-    new_stdin = os.fdopen(r, 'r')
-    old_stdin, sys.stdin = sys.stdin, new_stdin
-    os.write(w, "exit\r\n".encode())
+    mocking = MockStdIn()
+    mocking.close_on_start_cli()
 
     from ipmininet.iptopo import IPTopo
 
@@ -169,6 +165,10 @@ As for Mininet, IPMininet networks need root access to be executed.
     :options: +ELLIPSIS
 
     mininet> ...
+
+.. testcleanup:: network run
+
+    mocking.clean()
 
 By default, all the generated configuration files for each daemon
 are removed. You can prevent this behavior by setting ``ipmininet.DEBUG_FLAG``
