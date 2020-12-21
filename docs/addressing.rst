@@ -347,6 +347,15 @@ You can also add routes manually when the network has started since you can run 
 
     from ipmininet.clean import cleanup
     cleanup(level='warning')
+    import sys, os
+
+    try:
+        r
+    except NameError:
+        r, w = os.pipe()
+        new_stdin = os.fdopen(r, 'r')
+        old_stdin, sys.stdin = sys.stdin, new_stdin
+    os.write(w, "exit\r\n".encode())
 
 .. testoutput:: *
     :hide:

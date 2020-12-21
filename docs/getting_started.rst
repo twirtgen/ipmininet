@@ -122,6 +122,13 @@ As for Mininet, IPMininet networks need root access to be executed.
 .. testcode:: network run
     :hide:
 
+    import sys, os
+
+    r, w = os.pipe()
+    new_stdin = os.fdopen(r, 'r')
+    old_stdin, sys.stdin = sys.stdin, new_stdin
+    os.write(w, "exit\r\n".encode())
+
     from ipmininet.iptopo import IPTopo
 
     class MyTopology(IPTopo):

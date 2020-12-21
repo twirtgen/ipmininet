@@ -66,6 +66,17 @@ class ProcessHelper:
             except OSError:
                 pass  # Process is already dead
 
+            try:
+                # we need to wait for the termination of the current
+                # process so that the kernel can remove it from the
+                # process table
+                p.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                # if the process has not terminated yet,
+                # we send a SIGKILL as ultimate resort.
+                p.kill()
+                p.wait()  # use p.wait to free kernel resources and clean the process table
+
 
 class IPNode(Node):
     """A Node which manages a set of daemons"""
