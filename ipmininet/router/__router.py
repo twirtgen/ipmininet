@@ -63,10 +63,6 @@ class ProcessHelper:
         for p in self._processes.values():
             try:
                 p.terminate()
-            except OSError:
-                continue  # Process is already dead
-
-            try:
                 # we need to wait for the termination of the current
                 # process so that the kernel can remove it from the
                 # process table
@@ -76,6 +72,9 @@ class ProcessHelper:
                 # we send a SIGKILL as ultimate resort.
                 p.kill()
                 p.wait()  # use p.wait to free kernel resources and clean the process table
+
+            except OSError:
+                pass  # Process is already dead
 
 
 class IPNode(Node):
@@ -149,6 +148,10 @@ class IPNode(Node):
         tentative_cmd = "ip addr show tentative"
         tentative_chk = self._processes.call(tentative_cmd)
         while tentative_chk is not None and tentative_chk != '':
+            if tentative_chk.find("dadfailed") != -1:
+                lg.error('At least two nodes have the same IPv6 address!\n')
+                mininet.clean.cleanup()
+                sys.exit(1)
             time.sleep(.5)
             tentative_chk = self._processes.call(tentative_cmd)
         lg.debug(self._processes.node.name, 'All IPv6 addresses has passed the Duplicate address detection mechanism')
