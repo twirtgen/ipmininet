@@ -145,7 +145,9 @@ class Entry:
             else:
                 _prefix = ip_network(prefix)
                 if family is not None:
-                    assert get_family(self.prefix) == family, "prefix family %s != family (%s)" % (get_family(self.prefix), family)
+                    assert get_family(_prefix) == family, \
+                        "prefix family %s != family (%s)" % \
+                        (get_family(_prefix), family)
         else:
             _prefix = prefix
 

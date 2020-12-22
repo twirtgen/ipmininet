@@ -166,8 +166,7 @@ class ExaBGPTopoInjectPrefixes(IPTopo):
                     if isinstance(addr[node][afi], str):
                         self.addr[node][afi] = ip_interface(addr[node][afi])
                     else:
-                        assert isinstance(addr[node][afi], IPv4Interface) or \
-                               isinstance(addr[node][afi], IPv6Interface), \
+                        assert isinstance(addr[node][afi], (IPv4Interface, IPv6Interface)), \
                                "Bad type '{type}' for {afi} AFI. Expected: IPv4Interface or IPv6Interface or str." \
                                .format(type=type(addr[node][afi]), afi=afi)
 

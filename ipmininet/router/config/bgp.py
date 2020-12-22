@@ -528,7 +528,7 @@ class AddressFamily:
         elif self.name == 'ipv6':
             return 'ip6'
         else:
-            ValueError("Unsupported AddressFamily %s" % self.name)
+            raise ValueError("Unsupported AddressFamily %s" % self.name)
 
 
 def AF_INET(*args, **kwargs):

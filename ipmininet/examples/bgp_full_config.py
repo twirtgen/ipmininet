@@ -56,18 +56,19 @@ class BGPTopoFull(IPTopo):
                       (switch, as4h1))
         self.addSubnet((as4r1, as4r2, as4h1), subnets=('dead:beef::/32',))
 
-        al = AccessList(name='all', entries=('any',))
+        al4 = AccessList(name='all4', entries=('any',), family='ipv4')
+        al6 = AccessList(name='all6', entries=('any',), family='ipv6')
 
         as1r6.get_config(BGP)\
-            .set_local_pref(99, from_peer=as4r1, matching=(al,))\
-            .set_med(50, to_peer=as4r1, matching=(al,))
+            .set_local_pref(99, from_peer=as4r1, matching=(al4, al6))\
+            .set_med(50, to_peer=as4r1, matching=(al4, al6))
 
         as4r1.get_config(BGP)\
-            .set_community('1:80', from_peer=as1r6, matching=(al,))\
-            .set_med(50, to_peer=as1r6, matching=(al,))
+            .set_community('1:80', from_peer=as1r6, matching=(al4, al6))\
+            .set_med(50, to_peer=as1r6, matching=(al4, al6))
 
         as1r5.get_config(BGP).set_local_pref(50, from_peer=as4r2,
-                                             matching=(al,))
+                                             matching=(al4, al6))
 
         # Add full mesh
         self.addAS(4, (as4r1, as4r2))

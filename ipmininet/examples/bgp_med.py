@@ -57,9 +57,10 @@ class BGPTopoMed(IPTopo):
                       (switch, as4h1))
         self.addSubnet((as4r1, as4r2, as4h1), subnets=('dead:beef::/32',))
 
-        al = AccessList(name='all', entries=('any',))
-        as4r1.get_config(BGP).set_med(99, to_peer=as1r6, matching=(al, ))
-        as4r2.get_config(BGP).set_med(50, to_peer=as1r5, matching=(al, ))
+        al4 = AccessList(name='all4', entries=('any',), family='ipv4')
+        al6 = AccessList(name='all6', entries=('any',), family='ipv6')
+        as4r1.get_config(BGP).set_med(99, to_peer=as1r6, matching=(al4, al6))
+        as4r2.get_config(BGP).set_med(50, to_peer=as1r5, matching=(al4, al6))
 
         # Add full mesh
         self.addAS(4, (as4r1, as4r2))

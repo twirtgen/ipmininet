@@ -194,8 +194,7 @@ class BGPAttribute(Representable):
     def __str__(self):
         if self.flags is None:
             return self.str_repr()
-        else:
-            return self.hex_repr()
+        return self.hex_repr()
 
     def __repr__(self) -> str:
         return "BGPAttribute(attr_type={attr_type}, val={val}{flags})".format(
@@ -230,6 +229,7 @@ class BGPRoute(Representable):
             if isinstance(attr.type, str):
                 if attr.type == item:
                     return attr
+        return None
 
 
 class ExaBGPDaemon(AbstractBGP):
