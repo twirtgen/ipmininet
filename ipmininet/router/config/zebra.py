@@ -2,7 +2,7 @@ import os
 import socket
 from abc import abstractmethod, ABC
 from ipaddress import IPv4Network, IPv6Network, ip_network
-from typing import Optional, Union, Sequence, Tuple
+from typing import Optional, Union, Sequence, Tuple, Set, Dict
 
 from .base import RouterDaemon
 from .utils import ConfigDict
@@ -336,22 +336,13 @@ class RouteMapSetAction:
                and self.value == other.value
 
 
-class RouteMap:
-    """A class representing a set of route maps applied to a given protocol"""
-
-    # Number of route maps
-    count = 0
-
-    def __init__(self, name: Optional[str] = None, match_policy=PERMIT,
+class RouteMapEntry:
+    def __init__(self, family: str, match_policy=PERMIT,
                  match_cond: Sequence[Union[RouteMapMatchCond, Tuple]] = (),
                  set_actions: Sequence[Union[RouteMapSetAction, Tuple]] = (),
                  call_action: Optional[str] = None,
-                 exit_policy: Optional[str] = None, order=10,
-                 proto: Sequence[str] = (), neighbor: Sequence = (),
-                 direction='in',
-                 family=None):
+                 exit_policy: Optional[str] = None):
         """
-        :param name: The name of the route-map, defaulting to rm##
         :param match_policy: Deny or permit the actions if the route match
                              the condition
         :param match_cond: Specify one or more conditions which must be matched
@@ -362,16 +353,12 @@ class RouteMap:
         :param exit_policy: An entry may, optionally specify an alternative exit
                             policy if the entry matched or of (action, [acl,
                             acl, ...]) tuples that will compose the route map
-        :param order: Priority of the route map compare to others
-        :param proto: The set of protocols to which this route-map applies
-        :param neighbor: List of peers this route map is applied to
-        :param direction: Direction of the routemap(in, out, both)
         """
-        RouteMap.count += 1
 
         assert family in {'ipv4', 'ipv6', 'community'}, "Unrecognized family"
 
-        self.name = name if name else 'rm%d' % RouteMap.count
+        self.family = family
+
         self.match_policy = match_policy
         self.match_cond = [e if isinstance(e, RouteMapMatchCond)
                            else RouteMapMatchCond(cond_type=e[0],
@@ -383,18 +370,6 @@ class RouteMap:
                             for e in set_actions]
         self.call_action = call_action
         self.exit_policy = exit_policy
-        self.neighbor = neighbor
-        self.direction = direction
-        self.order = order
-        self.proto = proto
-        self.family = family
-
-    def __eq__(self, other):
-        return self.neighbor == other.neighbor \
-               and self.direction == other.direction \
-               and self.exit_policy == other.exit_policy \
-               and self.order == other.order \
-               and self.family == other.family
 
     def append_match_cond(self, match_conditions):
         """
@@ -414,6 +389,108 @@ class RouteMap:
         for set_action in set_actions:
             if set_action not in self.set_actions:
                 self.set_actions.append(set_action)
+
+    def update(self, rm_entry: 'RouteMapEntry'):
+        if not self.can_merge(rm_entry):
+            raise ValueError("Attempting to merge incompatible RouteMap Entries")
+
+        self.append_set_action(rm_entry.set_actions)
+        self.append_match_cond(rm_entry.match_cond)
+
+    def can_merge(self, rm_entry):
+        return self.family == rm_entry.family \
+               and self.match_policy == rm_entry.match_policy \
+               and self.call_action == rm_entry.call_action \
+               and self.exit_policy == rm_entry.exit_policy
+
+
+class RouteMap:
+    """A class representing a set of route maps applied to a given protocol"""
+
+    # Number of route maps
+    count = 0
+    DEFAULT_POLICY = 65535
+
+    def __init__(self, family: str, name: Optional[str] = None,
+                 proto: Set[str] = (), neighbor: Optional[str] = None,
+                 direction: str = 'in'):
+        """
+        :param name: The name of the route-map, defaulting to rm##
+        :param proto: The set of protocols to which this route-map applies
+        :param neighbor: List of peers this route map is applied to
+        :param direction: Direction of the routemap(in, out, both)
+        """
+        RouteMap.count += 1
+
+        assert family in {'ipv4', 'ipv6', 'community'}, "Unrecognized family"
+
+        self.name = name if name else 'rm%d' % RouteMap.count
+
+        self.entries = dict()  # type: Dict[int, 'RouteMapEntry']
+
+        self.neighbor = neighbor
+        self.direction = direction
+        self.proto = proto
+        self.family = family
+        self._hi_order = 0  # used when adding a route map entry. Represents the highest route map entry added
+
+        # used to indicate that the current route map has a default
+        # entry that accepts all routes as default policy.
+        # By default, RMs deny at the very end. Yet, the user can
+        # override this default behavior if is inserts an entry in the
+        # DEFAULT_POLICY order of the route map
+        self._default_policy_set = False
+
+    def _inc_order(self):
+        self._hi_order += 10
+        assert self._hi_order < self.DEFAULT_POLICY, "Maximum route-map order exceeded (> %d)" % self.DEFAULT_POLICY
+
+    def default_policy_set(self):
+        return self._default_policy_set
+
+    def entry(self, rm_entry: 'RouteMapEntry', order: Optional[int] = None):
+        if order is None:
+            self._inc_order()
+            order = self._hi_order
+        elif order == self.DEFAULT_POLICY:
+            self._default_policy_set = True
+        else:
+            self._hi_order = max(order, self._hi_order)
+
+        if order not in self.entries:
+            self.entries[order] = rm_entry
+        else:
+            self.entries[order].update(rm_entry)
+
+    def remove_entry(self, order: int):
+        if order in self.entries:
+            self.entries.pop(order, None)
+
+    def remove_default_policy(self):
+        if self.DEFAULT_POLICY in self.entries:
+            self.entries.pop(self.DEFAULT_POLICY, None)
+
+    def update(self, rm: 'RouteMap'):
+        if self != rm:
+            raise ValueError("Attempting to update incompatible RouteMaps")
+
+        for order in rm.entries.keys():
+            self.entry(rm.entries[order], order)
+
+    def find_entry_by_match_condition(self, condition: Sequence['RouteMapMatchCond']):
+        for entry in self.entries:
+            if self.entries[entry].match_cond == condition:
+                return self.entries[entry]
+
+    def __len__(self):
+        return len(self.entries)
+
+    def __eq__(self, other):
+        return self.name == other.name \
+               and self.direction == other.direction \
+               and self.family == other.family \
+               and self.proto == other.proto \
+               and self.neighbor == other.neighbor
 
     @property
     def describe(self):

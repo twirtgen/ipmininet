@@ -26,7 +26,7 @@ router bgp ${node.bgpd.asn}
 % for af in node.bgpd.address_families:
     address-family ${af.name}
     % for rm in node.bgpd.route_maps:
-        % if rm.neighbor.family == af.name and rm.order == 10 and rm.family == af.name:
+        % if rm.family == af.name:
         neighbor ${rm.neighbor.peer} route-map ${rm.name} ${rm.direction}
         % endif
     % endfor
@@ -72,8 +72,9 @@ ${pl.zebra_family} prefix-list ${pl.name} ${e.action} ${e.prefix} ${ 'le %s' % e
 
 
 % for rm in node.bgpd.route_maps:
-route-map ${rm.name} ${rm.match_policy} ${rm.order}
-        %for match in rm.match_cond:
+    %for order in sorted(rm.entries.keys()):
+route-map ${rm.name} ${rm.entries[order].match_policy} ${order}
+        %for match in rm.entries[order].match_cond:
             %if match.cond_type == "access-list" and match.family == rm.family:
     match ${match.zebra_family} address ${match.condition}
             %elif match.cond_type == "prefix-list" and match.family == rm.family:
@@ -86,19 +87,21 @@ route-map ${rm.name} ${rm.match_policy} ${rm.order}
     match ${match.cond_type} ${match.condition}
             %endif
         %endfor
-        %for action in rm.set_actions:
+        %for action in rm.entries[order].set_actions:
             %if action.action_type == 'community' and isinstance(action.value, int):
     set ${action.action_type} ${node.bgpd.asn}:${action.value}
             %else:
     set ${action.action_type} ${action.value}
             %endif
         %endfor
-        %if rm.call_action:
+        %if rm.entries[order].call_action:
     call ${rm.call_action}
         %endif
-        %if rm.exit_policy:
+        %if rm.entries[order].exit_policy:
     on-match ${rm.exit_policy}
         %endif
+!
+    %endfor
 !
 % endfor
 <%block name="router"/>

@@ -105,18 +105,18 @@ def test_bgp_example():
     ({"address_families": [AF_INET(redistribute=["connected"]),
                            AF_INET6(redistribute=["connected"])]},
      ["router bgp 2",
-      "    neighbor 10.1.1.1 remote-as 1",
-      "    neighbor 10.2.1.2 remote-as 2",
-      "    neighbor 10.1.1.1 ebgp-multihop",
-      "    neighbor 10.1.1.1 activate",
-      "    neighbor 10.2.1.2 activate",
-      "    redistribute connected"]),
+      "neighbor 10.1.1.1 remote-as 1",
+      "neighbor 10.2.1.2 remote-as 2",
+      "neighbor 10.1.1.1 ebgp-multihop",
+      "neighbor 10.1.1.1 activate",
+      "neighbor 10.2.1.2 activate",
+      "redistribute connected"]),
     ({"address_families": [AF_INET(redistribute=["connected"],
                                    networks=["10.0.0.0/24"]),
                            AF_INET6(redistribute=["connected"],
                                     networks=["fd00:2001:180::/64"])]},
-     ["    network 10.0.0.0/24",
-      "    network fd00:2001:180::/64"]),
+     ["network 10.0.0.0/24",
+      "network fd00:2001:180::/64"]),
 ])
 def test_bgp_daemon_params(bgp_params, expected_cfg):
     try:
@@ -125,9 +125,9 @@ def test_bgp_daemon_params(bgp_params, expected_cfg):
 
         # Check generated configuration
         with open("/tmp/bgpd_as2r1.cfg") as fileobj:
-            cfg = fileobj.readlines()
+            cfg = [line for line in (line.strip() for line in fileobj) if line]
             for line in expected_cfg:
-                assert line + "\n" in cfg,\
+                assert line in cfg,\
                     "Cannot find the line '%s' in the generated " \
                     "configuration:\n%s" % (line, "".join(cfg))
 
