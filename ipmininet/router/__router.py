@@ -145,7 +145,7 @@ class IPNode(Node):
         # The command lists addresses failing duplicate address detection (IPv6)
         # If any, it waits until all addresses has been checked
         lg.debug(self._processes.node.name, 'Checking for any "tentative" addresses')
-        tentative_cmd = "ip addr show tentative"
+        tentative_cmd = "ip -6 addr show tentative"
         tentative_chk = self._processes.call(tentative_cmd)
         while tentative_chk is not None and tentative_chk != '':
             if tentative_chk.find("dadfailed") != -1:
