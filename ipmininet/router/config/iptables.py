@@ -20,12 +20,12 @@ class IPTables(Daemon):
 
     @property
     def startup_line(self):
-        return '{name}-restore {fname}'.format(name=self.NAME,
+        return '{name}-restore {fname} -w'.format(name=self.NAME,
                                                fname=self.cfg_filename)
 
     @property
     def dry_run(self):
-        return '{name}-restore -vt {fname}'.format(name=self.NAME,
+        return '{name}-restore -vt {fname} -w'.format(name=self.NAME,
                                                    fname=self.cfg_filename)
 
     def set_defaults(self, defaults):
