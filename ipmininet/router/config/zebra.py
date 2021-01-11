@@ -91,7 +91,7 @@ class Zebra(QuaggaDaemon):
         defaults.route_maps = []
         super().set_defaults(defaults)
 
-    def has_started(self):
+    def has_started(self, node_exec=None):
         # We override this such that we wait until we have the API socket
         # and until wa can connect to it
         return os.path.exists(self.zebra_socket) and self.listening()

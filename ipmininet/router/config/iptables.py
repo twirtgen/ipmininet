@@ -3,6 +3,7 @@ state of affairs of IPv6, one is required to explicitly make two different
 daemon instances, one to manage iptables, one to manage ip6tables ..."""
 from itertools import groupby
 from operator import attrgetter
+from os import EX_OK
 
 from ipmininet.utils import is_container
 from .base import Daemon
@@ -46,6 +47,14 @@ class IPTables(Daemon):
                                                 key=table_name),
                                          table_name)}
         return cfg
+
+    def has_started(self, node_exec=None) -> bool:
+        cmd = '{iptable} -w 1 -L'.format(iptable=self.NAME)
+        if node_exec is not None:
+            _, _, code = node_exec.pexec(cmd)
+            return code == EX_OK
+
+        return super().has_started()
 
     def _compile_rule(self, rule):
         if isinstance(rule, Chain):

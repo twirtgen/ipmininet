@@ -160,7 +160,7 @@ class IPNode(Node):
         for d in self.nconfig.daemons:
             self._processes.popen(shlex.split(d.startup_line))
             # Busy-wait if the daemon needs some time before being started
-            while not d.has_started():
+            while not d.has_started(self._processes):
                 time.sleep(.001)
 
     def terminate(self):

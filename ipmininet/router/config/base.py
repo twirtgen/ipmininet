@@ -20,7 +20,7 @@ import mako.exceptions
 from mininet.log import lg as log
 
 if TYPE_CHECKING:
-    from ipmininet.router import IPNode, Router, OpenrRouter
+    from ipmininet.router import IPNode, Router, OpenrRouter, ProcessHelper
     from ipmininet.iptopo import IPTopo
     from ipmininet.node_description import NodeDescription
 DaemonOption = Union['Daemon', Type['Daemon'],
@@ -404,8 +404,10 @@ class Daemon(metaclass=abc.ABCMeta):
     def set_defaults(self, defaults):
         """Update defaults to contain the defaults specific to this daemon"""
 
-    def has_started(self) -> bool:
-        """Return whether this daemon has started or not"""
+    def has_started(self, node_exec: 'ProcessHelper' = None) -> bool:
+        """Return whether this daemon has started or not
+        :param node_exec:
+        """
         return True
 
     @classmethod
