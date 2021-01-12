@@ -49,7 +49,7 @@ class IPTables(Daemon):
         return cfg
 
     def has_started(self, node_exec=None) -> bool:
-        cmd = '{iptable} -w 1 -L'.format(iptable=self.NAME)
+        cmd = '{iptable} -w -L'.format(iptable=self.NAME)
         if node_exec is not None:
             _, _, code = node_exec.pexec(cmd)
             return code == EX_OK
