@@ -4,9 +4,11 @@ import re
 import time
 from contextlib import closing
 from ipaddress import IPv4Interface, IPv6Interface
-from typing import Tuple, Sequence, Dict, Union
-import pytest
 from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
+from typing import Tuple, Sequence, Dict, Union
+
+import pytest
+
 from ipmininet.clean import cleanup
 from ipmininet.examples.exabgp_prefix_injector import ExaBGPTopoInjectPrefixes
 from ipmininet.ipnet import IPNet
@@ -27,7 +29,23 @@ exa_routes = {
         BGPRoute(ip_network('1.2.3.4/32'), [BGPAttribute("next-hop", "self"),
                                             BGPAttribute("as-path", ExaList([1, 49887, 39875, 3, 4])),
                                             BGPAttribute("origin", "igp"),
-                                            BGPAttribute("local-preference", 42)])
+                                            BGPAttribute("local-preference", 42)]),
+        BGPRoute(ip_network('79.232.8.234/31'), [BGPAttribute("next-hop", "self"),
+                                                 BGPAttribute("as-path", ExaList(
+                                                     [1, 5, 48643, 27269, 40070, 23066, 16156, 42942, 63941, 59598,
+                                                      13519, 34769, 58452, 30040, 10201, 20699, 47328, 60517, 10726,
+                                                      30566, 41722])),
+                                                 BGPAttribute("med", 2983147431),
+                                                 BGPAttribute("origin", "incomplete"),
+                                                 BGPAttribute("community", ExaList(
+                                                     ['27143:50178', '43275:3204', '8207:51989', '37776:50582',
+                                                      '43665:5655', '27666:57245', '404:44723', '35094:21563',
+                                                      '43160:60093', '52506:5571', '26526:20041', '64552:41036',
+                                                      '42411:6349', '22060:7250', '5047:27611', '956:27358',
+                                                      '41924:60774', '39756:8423', '55633:46188', '52836:8813',
+                                                      '35178:22387', '37869:27641', '27376:27259', '8825:27516',
+                                                      '37759:17407']
+                                                 ))])
     ],
     'ipv6': [
         BGPRoute(ip_network("dead:beef:15:dead::/64"), [BGPAttribute("next-hop", "self"),
